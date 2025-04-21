@@ -1,4 +1,4 @@
-const API = "http://127.0.0.1:5000";
+const API = "https://shopsphere-dgaa.onrender.com";
 function spinWheel() {
     const rewards = [5, 10, 15, 0]; // % discount
     const random = rewards[Math.floor(Math.random() * rewards.length)];
