@@ -8,7 +8,7 @@ ShopSphere is a web-based online shopping cart system enhanced with motivational
 
 ## 🚀 Live Demo
 
-Frontend: [https://shopsphere.netlify.app](https://shopsphere.netlify.app)  
+Frontend: [https://shopsphereshopping.netlify.app](https://shopsphere.netlify.app)  
 Backend API: [https://shopsphere-backend.onrender.com](https://shopsphere-backend.onrender.com)
 
 ---
