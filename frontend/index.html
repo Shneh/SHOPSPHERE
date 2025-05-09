@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -23,5 +23,170 @@
   <button onclick="shareCart()">📤 Share Cart</button>
 
   <script src="assets/main.js"></script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopSphere | Revolutionizing Your Cart Experience</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <h1>ShopSphere</h1>
+            <p>Revolutionizing Your Cart Experience</p>
+    Experience</p>
+
+       </div>
+        <nav>
+            <ul>
+                <!-- Navigation Links -->
+ 
+                <li><a href="#electronics">Electronics</a></li>
+                <li><a href="#grocery">Grocery</a></li>
+                <li><a href="#pet-supplies">Pet Supplies</a></li>
+                <li><a href="#clothing">Clothing</a></li>
+                <li><a href="#beauty">Beauty</a></li>
+                <li><a href="#home">Home & Furniture</a></li>
+                <li><a href="#fitness">Fitness & Sports</a></li>
+                <li><a href="#books">Books & Education</a></li>
+            </ul>
+             <!-- Search Form -->
+    <form id="search-form">
+        <input type="text" id="search-input" placeholder="Search...">
+        <button id="search-button">Search</button>
+      </form>
+        </nav>
+    </header>
+    <!-- Other sections... -->
+
+<!-- Search Results Container -->
+<div id="search-results"></div>
+
+
+    <!-- Hero Section -->
+    <section id="hero">
+        <div class="hero-text">
+            <h2>Discover New Possibilities with Every Purchase</h2>
+            <p>Welcome to ShopSphere — where innovation meets convenience. Start exploring now and transform how you shop online.</p>
+            <button onclick="window.location.href='#electronics'">Start Exploring</button>
+        </div>
+    </section>
+
+    <!-- Categories -->
+    <section id="categories">
+        <div class="category-container">
+            <div class="category" id="electronics">
+                <h3>Electronics</h3>
+                <img src="electronics.jpg" alt="Electronics">
+                <p>Latest gadgets and devices at your fingertips.</p>
+                <button class="add-to-wishlist">Add to Wishlist</button>
+                <button class="add-to-cart">Add to Cart</button>
+              
+            </div>
+            <div class="category" id="grocery">
+                <h3>Grocery</h3>
+                <img src="grocery.jpg" alt="Grocery">
+                <p>Fresh produce and everyday essentials.</p>
+                <button class="add-to-wishlist">Add to Wishlist</button>
+                <button class="add-to-cart">Add to Cart</button>
+              
+            </div>
+            <div class="category" id="pet-supplies">
+                <h3>Pet Supplies</h3>
+                <img src="pet-supplies.jpg" alt="Pet Supplies">
+                <p>Everything your pets need to stay happy and healthy.</p>
+                <button class="add-to-wishlist">Add to Wishlist</button>
+                <button class="add-to-cart">Add to Cart</button>
+              
+            </div>
+            <div class="category" id="clothing">
+                <h3>Clothing</h3>
+                <div class="subcategories">
+                    <div class="subcategory">
+                        <h4>Men</h4>
+                        <img src="men-clothing.jpg" alt="Men's Clothing">
+                        <button class="add-to-wishlist">Add to Wishlist</button>
+                        <button class="add-to-cart">Add to Cart</button>
+                      
+                    </div>
+                    <div class="subcategory">
+                        <h4>Women</h4>
+                        <img src="women-clothing.jpg" alt="Women's Clothing">
+                        <button class="add-to-wishlist">Add to Wishlist</button>
+                        <button class="add-to-cart">Add to Cart</button>
+                      
+                    </div>
+                    <div class="subcategory">
+                        <h4>Kids</h4>
+                        <img src="kids-clothing.jpg" alt="Kids' Clothing">
+                        <button class="add-to-wishlist">Add to Wishlist</button>
+                        <button class="add-to-cart">Add to Cart</button>
+                      
+                    </div>
+                </div>
+            </div>
+            <div class="category" id="beauty">
+                <h3>Beauty & Personal Care</h3>
+                <img src="beauty.jpg" alt="Beauty Products">
+                
+                <p>Beauty products that pamper you every day.</p>
+                <button class="add-to-wishlist">Add to Wishlist</button>
+                <button class="add-to-cart">Add to Cart</button>
+              
+            </div>
+            <div class="category" id="home">
+                <h3>Home & Furniture</h3>
+                <img src="home-furniture.jpg" alt="Home Furniture">
+                <p>Stylish furniture and decor for your home.</p>
+                <button class="add-to-wishlist">Add to Wishlist</button>
+                <button class="add-to-cart">Add to Cart</button>
+              
+            </div>
+            <div class="category" id="fitness">
+                <h3>Fitness & Sports</h3>
+                <img src="fitness.jpg" alt="Fitness Equipment">
+                <p>Get fit with the best fitness gear and sports accessories.</p>
+                <button class="add-to-wishlist">Add to Wishlist</button>
+                <button class="add-to-cart">Add to Cart</button>
+              
+            </div>
+            <div class="category" id="books">
+                <h3>Books & Education</h3>
+                <img src="books.jpg" alt="Books">
+                <p>Explore a wide range of books and educational resources.</p>
+                <button class="add-to-wishlist">Add to Wishlist</button>
+                <button class="add-to-cart">Add to Cart</button>
+              
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <p>&copy; 2025 ShopSphere. All Rights Reserved.</p>
+            <p>Follow us on: <a href="#">Instagram</a> | <a href="#">Facebook</a> | <a href="#">Twitter</a></p>
+        </div>
+    </footer>
+
+    <!-- JavaScript for Smooth Scrolling -->
+    <script>
+        // Add smooth scrolling to all links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+
 </body>
 </html>
