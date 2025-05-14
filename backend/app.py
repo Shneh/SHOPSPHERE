@@ -1,8 +1,29 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask import request
+from db import products_col
 
 app = Flask(__name__)
 CORS(app)
+
+@app.route("/products", methods=["GET"])
+def get_products():
+    try:
+        cursor = products_col.find()
+        products = [
+            {
+                "id": str(p["_id"]),
+                "name": p["name"],
+                "category": p.get("category", ""),
+                "price": p["price"],
+                "image": p.get("image", "")
+            }
+            for p in cursor
+        ]
+        return jsonify(products)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 # Simulated cart stored in memory
 cart = []
