@@ -1,4 +1,5 @@
 const API = "https://shopsphere-dgaa.onrender.com";
+
 function spinWheel() {
     const rewards = [5, 10, 15, 0]; // % discount
     const random = rewards[Math.floor(Math.random() * rewards.length)];
@@ -76,3 +77,31 @@ function applyDiscount() {
 }
 
 window.onload = loadCart;
+function loadProducts() {
+  fetch(`${API}/products`)
+    .then(res => res.json())
+    .then(products => {
+      const container = document.getElementById("product-list");
+      container.innerHTML = products.map(p => `
+        <div class="product-card">
+          <img src="${p.image}" alt="${p.name}" />
+          <h4>${p.name}</h4>
+          <p>Category: ${p.category}</p>
+          <p>Price: ₹${p.price}</p>
+          <button onclick="addItemToCart('${p.name}', ${p.price})">Add to Cart</button>
+        </div>
+      `).join("");
+    });
+}
+
+window.onload = () => {
+  loadProducts();
+};
+
+function addItemToCart(name, price) {
+  alert(`${name} (₹${price}) added to cart!`);
+  // You can implement the real backend logic later
+}
+window.onload = () => {
+  loadProducts();
+};
