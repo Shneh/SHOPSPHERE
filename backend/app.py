@@ -8,22 +8,28 @@ CORS(app)
 
 @app.route("/products", methods=["GET"])
 def get_products():
-    try:
-        cursor = products_col.find()
-        products = [
-            {
-                "id": str(p["_id"]),
-                "name": p["name"],
-                "category": p.get("category", ""),
-                "price": p["price"],
-                "image": p.get("image", "")
-            }
-            for p in cursor
-        ]
-        return jsonify(products)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    search = request.args.get("search", "").lower()
+    sort = request.args.get("sort", "name")
+    order = request.args.get("order", "asc")
 
+    query = {}
+    if search:
+        query["name"] = {"$regex": search, "$options": "i"}
+
+    sort_dir = 1 if order == "asc" else -1
+
+    products = products_col.find(query).sort(sort, sort_dir)
+    output = [
+        {
+            "id": str(p["_id"]),
+            "name": p["name"],
+            "category": p.get("category", ""),
+            "price": p["price"],
+            "image": p.get("image", "")
+        }
+        for p in products
+    ]
+    return jsonify(output)
 
 # Simulated cart stored in memory
 cart = []
