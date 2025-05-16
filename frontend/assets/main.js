@@ -77,27 +77,37 @@ function applyDiscount() {
 }
 
 window.onload = loadCart;
-function loadProducts() {
-  fetch(`${API}/products`)
+function loadProducts(search = "", sort = "name", order = "asc") {
+  const query = `?search=${encodeURIComponent(search)}&sort=${sort}&order=${order}`;
+  fetch(`${API}/products${query}`)
     .then(res => res.json())
     .then(products => {
       const container = document.getElementById("product-list");
       container.innerHTML = products.map(p => `
         <div class="product-card">
-          <img src="${p.image}" alt="${p.name}" />
+          <img src="${p.image}" alt="${p.name}">
           <h4>${p.name}</h4>
-          <p>Category: ${p.category}</p>
-          <p>Price: ₹${p.price}</p>
-          <button onclick="addItemToCart('${p.name}', ${p.price})">Add to Cart</button>
+          <p>₹${p.price}</p>
+          <p>${p.category}</p>
         </div>
       `).join("");
     });
 }
 
+document.getElementById("search-form").addEventListener("submit", function (e) {
+  e.preventDefault();
+  const search = document.getElementById("search-input").value;
+  const sort = document.getElementById("sort-by").value;
+  const order = document.getElementById("sort-order").value;
+  loadProducts(search, sort, order);
+});
+
+window.onload = () => loadProducts();
+
+
 window.onload = () => {
   loadProducts();
 };
-
 function addItemToCart(name, price) {
   alert(`${name} (₹${price}) added to cart!`);
   // You can implement the real backend logic later
