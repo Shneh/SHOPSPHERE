@@ -3,49 +3,70 @@ const API = "https://shopsphere-dgaa.onrender.com";
 
 let cart = [];
 
-function loadProducts({ search = "", sortBy = "", sortOrder = "asc" } = {}) {
+function loadProducts(query = "") {
   fetch(`${API}/products`)
     .then(response => response.json())
     .then(products => {
-      // 🔍 Filter by search
-      if (search) {
-        const lowerSearch = search.toLowerCase();
-        products = products.filter(p => p.name.toLowerCase().includes(lowerSearch));
-      }
+      // Apply search filter
+      products = searchProducts(products, query);
 
-      // ↕️ Sort
-      if (sortBy === "price") {
-        products.sort((a, b) => sortOrder === "asc" ? a.price - b.price : b.price - a.price);
-      } else if (sortBy === "name") {
-        products.sort((a, b) => sortOrder === "asc"
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name)
-        );
-      }
-
-      // 🧱 Render to DOM
       const productList = document.getElementById("product-list");
-      productList.innerHTML = "";
+      productList.innerHTML = ""; // Clear existing products
 
-      products.forEach(p => {
-        const card = document.createElement("div");
-        card.classList.add("product-card");
+      products.forEach(product => {
+        const productCard = document.createElement("div");
+        productCard.classList.add("product-card");
 
-        card.innerHTML = `
-          <img src="${p.image}" alt="${p.name}">
-          <h3>${p.name}</h3>
-          <p>₹${p.price}</p>
-          <button onclick="addItemToCart('${p.name}', ${p.price})">Add to Cart</button>
+        productCard.innerHTML = `
+          <img src="${product.image}" alt="${product.name}" />
+          <h3>${product.name}</h3>
+          <p>₹${product.price}</p>
+          <button onclick="addItemToCart('${product.name}', ${product.price})">Add to Cart</button>
         `;
 
-        productList.appendChild(card);
+        productList.appendChild(productCard);
       });
     })
-    .catch(err => {
-      console.error("Failed to load products:", err);
-    });
+    .catch(error => console.error("Error loading products:", error));
 }
 
+// Call loadProducts() with search query
+document.getElementById("search-input").addEventListener("input", (e) => {
+  loadProducts(e.target.value); // Pass the search query
+});
+
+
+function loadProducts(sortBy = "") {
+  fetch(`${API}/products`)
+    .then(response => response.json())
+    .then(products => {
+      // Apply sorting
+      products = sortProducts(products, sortBy);
+      
+      const productList = document.getElementById("product-list");
+      productList.innerHTML = ""; // Clear existing products
+
+      products.forEach(product => {
+        const productCard = document.createElement("div");
+        productCard.classList.add("product-card");
+
+        productCard.innerHTML = `
+          <img src="${product.image}" alt="${product.name}" />
+          <h3>${product.name}</h3>
+          <p>₹${product.price}</p>
+          <button onclick="addItemToCart('${product.name}', ${product.price})">Add to Cart</button>
+        `;
+
+        productList.appendChild(productCard);
+      });
+    })
+    .catch(error => console.error("Error loading products:", error));
+}
+
+// Call loadProducts() with sorting
+document.getElementById("sort-options").addEventListener("change", (e) => {
+  loadProducts(e.target.value); // Pass the sorting option
+});
 
 
 function addItemToCart(name, price) {
@@ -263,22 +284,8 @@ function sortProducts(products, sortBy) {
   return products;
 }
 
+
+window.onload = () => loadProducts();
 function searchProducts(products, query) {
   return products.filter(product => product.name.toLowerCase().includes(query.toLowerCase()));
 }
-
-
-// Load initially
-function applyFilters() {
-  const search = document.getElementById("search-input").value;
-  const sortBy = document.getElementById("sort-by").value;
-  const sortOrder = document.getElementById("sort-order").value;
-  loadProducts({ search, sortBy, sortOrder });
-}
-
-document.getElementById("search-input").addEventListener("input", applyFilters);
-document.getElementById("sort-by").addEventListener("change", applyFilters);
-document.getElementById("sort-order").addEventListener("change", applyFilters);
-
-
-window.onload = () => loadProducts();
