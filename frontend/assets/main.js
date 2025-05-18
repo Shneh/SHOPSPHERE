@@ -1,5 +1,32 @@
 const API = "https://shopsphere-dgaa.onrender.com";
 
+let cart = [];
+window.onload = () => {
+  loadProducts();
+};
+
+function loadProducts(search = "", sort = "name", order = "asc") {
+  const query = `?search=${encodeURIComponent(search)}&sort=${sort}&order=${order}`;
+  
+  fetch(`${API}/products${query}`)
+    .then(res => res.json())
+    .then(products => {
+      const container = document.getElementById("product-list");
+      container.innerHTML = products.map(p => `
+        <div class="product-card">
+          <img src="${p.image}" alt="${p.name}" loading="lazy">
+          <h4>${p.name}</h4>
+          <p>Category: ${p.category}</p>
+          <p>₹${p.price}</p>
+          <button onclick="addItemToCart('${p.name}', ${p.price})">Add to Cart</button>
+        </div>
+      `).join("");
+    })
+    .catch(error => {
+      console.error("Error loading products:", error);
+    });
+}
+
 function spinWheel() {
     const rewards = [5, 10, 15, 0]; // % discount
     const random = rewards[Math.floor(Math.random() * rewards.length)];
@@ -25,10 +52,21 @@ function shareCart() {
 }
   
 function addItem() {
-  const item = {
-    name: "Sneakers",
-    price: 1200
-  };
+  fetch(`${API}/products`)
+    .then(res => res.json())
+    .then(products => {
+      if (products.length === 0) return;
+
+      const randomIndex = Math.floor(Math.random() * products.length);
+      const randomProduct = products[randomIndex];
+
+      addItemToCart(randomProduct.name, randomProduct.price);
+    })
+    .catch(err => {
+      console.error("Failed to fetch products:", err);
+    });
+}
+
 
   fetch(`${API}/add_to_cart`, {
     method: "POST",
@@ -42,7 +80,7 @@ function addItem() {
     alert("Item added!");
     loadCart();
   });
-}
+
 
 function loadCart() {
   fetch(`${API}/get_cart`)
@@ -115,3 +153,15 @@ function addItemToCart(name, price) {
 window.onload = () => {
   loadProducts();
 };
+function addItemToCart(name, price) {
+  cart.push({ name, price });
+  updateCart();
+}
+function updateCart() {
+  const cartList = document.getElementById("cart-list");
+  if (!cartList) return;
+
+  cartList.innerHTML = cart.map(item => `
+    <div>${item.name} - ₹${item.price}</div>
+  `).join("");
+}
