@@ -255,3 +255,4 @@ function sortProducts(products, sortBy) {
   }
   return products;
 }
+

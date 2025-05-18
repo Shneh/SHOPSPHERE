@@ -301,24 +301,23 @@ cursor: pointer;
 #checkout-button:hover {
   background-color: #ff3b3b;
 }
-.toast-message {
+.cart-toast {
   position: fixed;
   bottom: 30px;
-  right: 30px;
-  background-color: #4be3d9;
-  color: white;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #000000;
+  color: rgb(186, 47, 121);
   padding: 12px 20px;
-  border-radius: 8px;
-  font-weight: bold;
-  font-size: 0.95rem;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  opacity: 0;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  border-radius: 6px;
+  font-size: 16px;
   z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease-in-out;
 }
 
-.toast-message.show {
-  display: block;
+.cart-toast.show {
   opacity: 1;
-  transform: translateY(0);
+  pointer-events: auto;
 }
