@@ -4,30 +4,44 @@ const API = "https://shopsphere-dgaa.onrender.com";
 let cart = [];
 
 // Single loadProducts function that includes the Add to Cart button
-function loadProducts(search = "", sort = "name", order = "asc") {
-  const query = `?search=${encodeURIComponent(search)}&sort=${sort}&order=${order}`;
+async function loadProducts() {
+  try {
+    const response = await fetch(`${API}/products`);
+    const products = await response.json();
 
-  fetch(`${API}/products${query}`)
-    .then(res => res.json())
-    .then(products => {
-      const container = document.getElementById("product-list");
-      container.innerHTML = products.map(p => `
-        <div class="product-card">
-          <img src="${p.image}" alt="${p.name}">
-          <h4>${p.name}</h4>
-          <p>₹${p.price}</p>
-          <p>${p.category}</p>
-          <button onclick="addItemToCart('${p.name}', ${p.price})">Add to Cart</button>
-        </div>
-      `).join("");
+    const productList = document.getElementById("product-list");
+    productList.innerHTML = "";
+
+    products.forEach(product => {
+      const productCard = document.createElement("div");
+      productCard.classList.add("product-card");
+
+      productCard.innerHTML = `
+        <img src="${product.image}" alt="${product.name}" />
+        <h3>${product.name}</h3>
+        <p>₹${product.price}</p>
+        <button onclick="addItemToCart('${product.name}', ${product.price})">Add to Cart</button>
+      `;
+
+      productList.appendChild(productCard);
     });
+  } catch (error) {
+    console.error("❌ Failed to load products", error);
+  }
 }
 
 
+
 // Single addItemToCart function that updates the cart array
+
 function addItemToCart(name, price) {
-  cart.push({ name, price });
+  const item = { name, price };
+  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+  cart.push(item);
+  localStorage.setItem("cart", JSON.stringify(cart));
+  alert(`${name} added to cart!`);
   updateCart(); // Re-render cart contents if needed
+
 }
 
 // Updates the cart display (assumes an element #cart-list exists)

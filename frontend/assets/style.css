@@ -119,6 +119,16 @@ nav ul li a {
   padding: 1rem;
   
 }
+.product-card button {
+  padding: 8px 12px;
+  background-color: #4caf50;
+  border: none;
+  color: white;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+}
 
   
   .category {
