@@ -52,19 +52,6 @@ window.onload = () => {
 
 
 
-// Single addItemToCart function that updates the cart array
-
-function addItemToCart(name, price) {
-  const item = { name, price };
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  cart.push(item);
-  localStorage.setItem("cart", JSON.stringify(cart));
-  alert(`${name} added to cart!`);
-  updateCart(); // Re-render cart contents if needed
-
-}
-
-
 
 
 function spinWheel() {
@@ -91,45 +78,45 @@ function shareCart() {
     window.open(whatsappURL, "_blank");
 }
   
-// function addItem() {
-//   fetch(`${API}/products`)
-//     .then(res => res.json())
-//     .then(products => {
-//       if (products.length === 0) return;
+function addItem() {
+  fetch(`${API}/products`)
+    .then(res => res.json())
+    .then(products => {
+      if (products.length === 0) return;
 
-//       const randomIndex = Math.floor(Math.random() * products.length);
-//       const randomProduct = products[randomIndex];
+      const randomIndex = Math.floor(Math.random() * products.length);
+      const randomProduct = products[randomIndex];
 
-//       addItemToCart(randomProduct.name, randomProduct.price);
-//     })
-//     .catch(err => {
-//       console.error("Failed to fetch products:", err);
-//     });
-// }
-
-
-  // fetch(`${API}/add_to_cart`, {
-  //   method: "POST",
-  //   headers: {
-  //     "Content-Type": "application/json"
-  //   },
-  //   body: JSON.stringify(item)
-  // })
-  // .then(res => res.json())
-  // .then(data => {
-  //   alert("Item added!");
-  //   loadCart();
-  // });
+      addItemToCart(randomProduct.name, randomProduct.price);
+    })
+    .catch(err => {
+      console.error("Failed to fetch products:", err);
+    });
+}
 
 
-// function loadCart() {
-//   fetch(`${API}/get_cart`)
-//     .then(res => res.json())
-//     .then(cart => {
-//       const cartList = document.getElementById("cart-list");
-//       cartList.innerHTML = cart.map(item => `<p>${item.name} - ₹${item.price}</p>`).join("");
-//     });
-// }
+  fetch(`${API}/add_to_cart`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(item)
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert("Item added!");
+    loadCart();
+  });
+
+
+function loadCart() {
+  fetch(`${API}/get_cart`)
+    .then(res => res.json())
+    .then(cart => {
+      const cartList = document.getElementById("cart-list");
+      cartList.innerHTML = cart.map(item => `<p>${item.name} - ₹${item.price}</p>`).join("");
+    });
+}
 
 function applyDiscount() {
   fetch(`${API}/get_cart`)
@@ -154,23 +141,7 @@ function applyDiscount() {
     });
 }
 
-// window.onload = loadCart;
-// function loadProducts(search = "", sort = "name", order = "asc") {
-//   const query = `?search=${encodeURIComponent(search)}&sort=${sort}&order=${order}`;
-//   fetch(`${API}/products${query}`)
-//     .then(res => res.json())
-//     .then(products => {
-//       const container = document.getElementById("product-list");
-//       container.innerHTML = products.map(p => `
-//         <div class="product-card">
-//           <img src="${p.image}" alt="${p.name}">
-//           <h4>${p.name}</h4>
-//           <p>₹${p.price}</p>
-//           <p>${p.category}</p>
-//         </div>
-//       `).join("");
-//     });
-// }
+window.onload = loadCart;
 
 document.getElementById("search-form").addEventListener("submit", function (e) {
   e.preventDefault();
@@ -180,11 +151,4 @@ document.getElementById("search-form").addEventListener("submit", function (e) {
   loadProducts(search, sort, order);
 });
 
-// window.onload = () => loadProducts();
-
-
-
-// function addItemToCart(name, price) {
-//   alert(`${name} (₹${price}) added to cart!`);
-//   // You can implement the real backend logic later
-// }
+window.onload = () => loadProducts();
