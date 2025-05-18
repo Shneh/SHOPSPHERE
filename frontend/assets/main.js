@@ -78,33 +78,33 @@ function showToast(message) {
 
   toast.style.display = "block";
 }
-
 function updateCart() {
   const cartList = document.getElementById("cart-list");
   const cartTotal = document.getElementById("cart-total");
 
   if (!cartList || !cartTotal) return;
 
+  cartList.innerHTML = cart.map(item => `
+    <div>${item.name} x ${item.quantity} - ₹${item.price}</div>
+  `).join("");
+
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPrice = cart.reduce((sum, item) => sum + item.price, 0);
+
+  cartTotal.textContent = `🧾 Total: ₹${totalPrice} for ${totalItems} item(s)`;
+}
+
+function handleCheckout() {
   if (cart.length === 0) {
-    cartList.innerHTML = "<p>Your cart is empty.</p>";
-    cartTotal.textContent = "Total: ₹0";
+    alert("🛒 Your cart is empty!");
     return;
   }
 
-  let total = 0;
+  const total = cart.reduce((sum, item) => sum + item.price, 0);
+  alert(`✅ Thank you! Your order of ₹${total} has been placed.`);
 
-  cartList.innerHTML = cart.map(item => {
-    total += item.price;
-    return `
-      <div class="cart-item">
-        <span>${item.name}</span> 
-        <span>₹${item.price} (x${item.quantity})</span>
-        <button onclick="removeItem('${item.name}')">Remove</button>
-      </div>
-    `;
-  }).join("");
-
-  cartTotal.textContent = `Total: ₹${total.toFixed(2)}`;
+  cart = []; // Clear cart
+  updateCart();
 }
 
 function removeItem(name) {
@@ -144,9 +144,14 @@ function updateCart() {
 
 
 
-window.onload = () => {
-  loadCart();
+window.onload = function () {
   loadProducts();
+  updateCart();
+
+  const checkoutBtn = document.getElementById("checkout-button");
+  if (checkoutBtn) {
+    checkoutBtn.addEventListener("click", handleCheckout);
+  }
 };
 
 
