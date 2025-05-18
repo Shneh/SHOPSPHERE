@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask import request
 from db import products_col
+from db import orders_col
+
 from datetime import datetime
 
 app = Flask(__name__)
@@ -97,5 +99,5 @@ def checkout():
     }
     
 
-    db.orders.insert_one(order)
+    orders_col.insert_one(order)
     return jsonify({"message": "Order saved ✅"}), 200
