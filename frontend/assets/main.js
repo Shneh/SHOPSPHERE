@@ -33,10 +33,19 @@ function loadProducts() {
 }
 
 function addItemToCart(name, price) {
-  cart.push({ name, price });
+  const existingItem = cart.find(item => item.name === name);
+
+  if (existingItem) {
+    existingItem.quantity += 1; // Increase the quantity
+    existingItem.price = price * existingItem.quantity; // Update the price with new quantity
+  } else {
+    cart.push({ name, price, quantity: 1 }); // Add new item with quantity 1
+  }
+
   updateCart();
   showToast(`${name} added to cart!`);
 }
+
 
 function showToast(message) {
   const toast = document.getElementById("cart-toast");
@@ -69,14 +78,50 @@ function updateCart() {
   cartList.innerHTML = cart.map(item => {
     total += item.price;
     return `
-      <div>
-        <span>${item.name}</span>
-        <span>₹${item.price}</span>
+      <div class="cart-item">
+        <span>${item.name}</span> 
+        <span>₹${item.price} (x${item.quantity})</span>
+        <button onclick="removeItem('${item.name}')">Remove</button>
       </div>
     `;
   }).join("");
 
   cartTotal.textContent = `Total: ₹${total.toFixed(2)}`;
+}
+
+function removeItem(name) {
+  cart = cart.filter(item => item.name !== name); // Remove item by name
+  updateCart();
+}
+function updateCart() {
+  const cartList = document.getElementById("cart-list");
+  const cartTotal = document.getElementById("cart-total");
+
+  if (!cartList || !cartTotal) return;
+
+  if (cart.length === 0) {
+    cartList.innerHTML = "<p>Your cart is empty.</p>";
+    cartTotal.textContent = "Total: ₹0";
+    return;
+  }
+
+  let total = 0;
+
+  cartList.innerHTML = cart.map(item => {
+    total += item.price;
+    return `
+      <div class="cart-item">
+        <span>${item.name}</span> 
+        <span>₹${item.price} (x${item.quantity})</span>
+        <button onclick="removeItem('${item.name}')">Remove</button>
+      </div>
+    `;
+  }).join("");
+
+  cartTotal.textContent = `Total: ₹${total.toFixed(2)}`;
+
+  // Save cart to LocalStorage
+  localStorage.setItem("cart", JSON.stringify(cart));
 }
 
 
