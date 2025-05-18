@@ -3,26 +3,43 @@ const API = "https://shopsphere-dgaa.onrender.com";
 
 let cart = [];
 
-function loadProducts(search = "", sort = "name", order = "asc") {
-  const query = `?search=${encodeURIComponent(search)}&sort=${sort}&order=${order}`;
-  
-  fetch(`${API}/products${query}`)
-    .then(res => res.json())
+function loadProducts(query = "") {
+  fetch(`${API}/products`)
+    .then(response => response.json())
     .then(products => {
-      const container = document.getElementById("product-list");
-      container.innerHTML = products.map(p => `
-        <div class="product-card">
-          <img src="${p.image}" alt="${p.name}">
-          <h3>${p.name}</h3>
-          <p>₹${p.price}</p>
-          <button onclick="addItemToCart('${p.name}', ${p.price})">Add to Cart</button>
-        </div>
-      `).join("");
+      // Apply search filter
+      products = searchProducts(products, query);
+
+      const productList = document.getElementById("product-list");
+      productList.innerHTML = ""; // Clear existing products
+
+      products.forEach(product => {
+        const productCard = document.createElement("div");
+        productCard.classList.add("product-card");
+
+        productCard.innerHTML = `
+          <img src="${product.image}" alt="${product.name}" />
+          <h3>${product.name}</h3>
+          <p>₹${product.price}</p>
+          <button onclick="addItemToCart('${product.name}', ${product.price})">Add to Cart</button>
+        `;
+
+        productList.appendChild(productCard);
+      });
     })
-    .catch(error => {
-      console.error("Error loading products:", error);
-    });
+    .catch(error => console.error("Error loading products:", error));
 }
+
+// Call loadProducts() with search query
+document.getElementById("search-input").addEventListener("input", (e) => {
+  loadProducts(e.target.value); // Pass the search query
+});
+
+
+// Call loadProducts() with sorting
+document.getElementById("sort-options").addEventListener("change", (e) => {
+  loadProducts(e.target.value); // Pass the sorting option
+});
 
 
 function addItemToCart(name, price) {
@@ -227,6 +244,21 @@ document.getElementById("search-form").addEventListener("submit", function (e) {
   loadProducts(search, sort, order);
 });
 
+function sortProducts(products, sortBy) {
+  if (sortBy === "price-asc") {
+    return products.sort((a, b) => a.price - b.price);
+  } else if (sortBy === "price-desc") {
+    return products.sort((a, b) => b.price - a.price);
+  } else if (sortBy === "name-asc") {
+    return products.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (sortBy === "name-desc") {
+    return products.sort((a, b) => b.name.localeCompare(a.name));
+  }
+  return products;
+}
 
 
 window.onload = () => loadProducts();
+function searchProducts(products, query) {
+  return products.filter(product => product.name.toLowerCase().includes(query.toLowerCase()));
+}
