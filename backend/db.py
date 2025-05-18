@@ -6,3 +6,6 @@ MONGO_URI = "mongodb+srv://shopsphere_user:abcdefghijklmnopqrstuvwxyz@cluster0.j
 client = MongoClient(MONGO_URI)
 db = client["shopsphere"]
 products_col = db["products"]
+
+products_col = db["products"]
+orders_col = db["orders"]

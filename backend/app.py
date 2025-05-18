@@ -2,11 +2,11 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask import request
 from db import products_col
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/products", methods=["GET"])
 @app.route("/products", methods=["GET"])
 def get_products():
     search_query = request.args.get("search", "").lower()
@@ -78,3 +78,24 @@ def recommend():
         recommendations.append("Tie Clip")
 
     return jsonify(recommendations or ["Gift Card", "Notebook"])
+
+
+
+@app.route("/checkout", methods=["POST"])
+def checkout():
+    data = request.json
+    cart = data.get("cart", [])
+    total = data.get("total", 0)
+
+    if not cart:
+        return jsonify({"error": "Cart is empty"}), 400
+
+    order = {
+        "items": cart,
+        "total": total,
+        "timestamp": datetime.utcnow()
+    }
+    
+
+    db.orders.insert_one(order)
+    return jsonify({"message": "Order saved ✅"}), 200

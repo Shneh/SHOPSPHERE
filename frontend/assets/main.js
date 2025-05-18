@@ -158,7 +158,6 @@ window.onload = function () {
 
 
 
-
 function spinWheel() {
     const rewards = [5, 10, 15, 0]; // % discount
     const random = rewards[Math.floor(Math.random() * rewards.length)];
@@ -261,3 +260,28 @@ function sortProducts(products, sortBy) {
   return products;
 }
 
+function handleCheckout() {
+  if (cart.length === 0) {
+    alert("🛒 Your cart is empty!");
+    return;
+  }
+
+  const total = cart.reduce((sum, item) => sum + item.price, 0);
+
+  fetch(`${API}/checkout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cart, total })
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log(data.message);
+    alert("✅ Order placed! Thank you for shopping.");
+    cart = [];
+    updateCart();
+  })
+  .catch(err => {
+    console.error("❌ Order failed:", err);
+    alert("Something went wrong. Please try again.");
+  });
+}
