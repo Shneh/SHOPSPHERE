@@ -3,15 +3,14 @@ const API = "https://shopsphere-dgaa.onrender.com";
 
 let cart = [];
 
-
 function loadProducts() {
   fetch(`${API}/products`)
-    .then(response => response.json())
-    .then(products => {
+    .then((res) => res.json())
+    .then((products) => {
       const productList = document.getElementById("product-list");
-      productList.innerHTML = ""; // Clear existing products
+      productList.innerHTML = ""; // Clear current content
 
-      products.forEach(product => {
+      products.forEach((product) => {
         const productCard = document.createElement("div");
         productCard.classList.add("product-card");
 
@@ -19,31 +18,37 @@ function loadProducts() {
           <img src="${product.image}" alt="${product.name}" />
           <h3>${product.name}</h3>
           <p>₹${product.price}</p>
-          <button class="add-to-wishlist">Add to Wishlist</button><button class="add-to-cart">Add to Cart</button>
-          <button onclick="addItemToCart('${product.name}', ${product.price})">Add to Cart</button>
+          <p>${product.category}</p>
+          <button onclick="addItemToCart('${product.name.replace(/'/g, "\\'")}', ${product.price})">
+            Add to Cart
+          </button>
         `;
 
         productList.appendChild(productCard);
       });
     })
-    .catch(error => {
+    .catch((error) => {
       console.error("Error loading products:", error);
     });
 }
 
+function addItemToCart(name, price) {
+  cart.push({ name, price });
+  updateCart();
+}
 
 function updateCart() {
   const cartList = document.getElementById("cart-list");
+  if (!cartList) return;
   cartList.innerHTML = cart.map(item => `
     <div>${item.name} - ₹${item.price}</div>
   `).join("");
 }
 
-window.onload = function() {
+window.onload = () => {
   loadProducts();
   updateCart();
 };
-
 
 
 
