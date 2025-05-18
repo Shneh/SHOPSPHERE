@@ -5,15 +5,16 @@ let cart = [];
 
 function loadProducts({ search = "", sortBy = "", sortOrder = "asc" } = {}) {
   fetch(`${API}/products`)
-    .then(response => response.json())
+    .then(res => res.json())
     .then(products => {
-      // 🔍 Filter by search
+      // Search
       if (search) {
-        const lowerSearch = search.toLowerCase();
-        products = products.filter(p => p.name.toLowerCase().includes(lowerSearch));
+        products = products.filter(p =>
+          p.name.toLowerCase().includes(search.toLowerCase())
+        );
       }
 
-      // ↕️ Sort
+      // Sort
       if (sortBy === "price") {
         products.sort((a, b) => sortOrder === "asc" ? a.price - b.price : b.price - a.price);
       } else if (sortBy === "name") {
@@ -23,28 +24,23 @@ function loadProducts({ search = "", sortBy = "", sortOrder = "asc" } = {}) {
         );
       }
 
-      // 🧱 Render to DOM
       const productList = document.getElementById("product-list");
       productList.innerHTML = "";
 
       products.forEach(p => {
         const card = document.createElement("div");
         card.classList.add("product-card");
-
         card.innerHTML = `
           <img src="${p.image}" alt="${p.name}">
           <h3>${p.name}</h3>
           <p>₹${p.price}</p>
           <button onclick="addItemToCart('${p.name}', ${p.price})">Add to Cart</button>
         `;
-
         productList.appendChild(card);
       });
-    })
-    .catch(err => {
-      console.error("Failed to load products:", err);
     });
 }
+
 
 
 
@@ -273,12 +269,12 @@ function applyFilters() {
   const search = document.getElementById("search-input").value;
   const sortBy = document.getElementById("sort-by").value;
   const sortOrder = document.getElementById("sort-order").value;
-
   loadProducts({ search, sortBy, sortOrder });
 }
 
 document.getElementById("search-input").addEventListener("input", applyFilters);
 document.getElementById("sort-by").addEventListener("change", applyFilters);
 document.getElementById("sort-order").addEventListener("change", applyFilters);
+
 
 window.onload = () => loadProducts();

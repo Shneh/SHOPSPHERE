@@ -27,22 +27,8 @@
         <li><a href="#books">Books & Education</a></li>
       </ul>
 
-      <!-- Search Form -->
-<!-- 🔍 Search + Sort Controls -->
-<div id="filter-bar" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
-  <input type="text" id="search-input" placeholder="Search products..." style="padding: 0.5rem; flex: 1; min-width: 200px;">
+    
 
-  <select id="sort-by" style="padding: 0.5rem;">
-    <option value="">Sort by</option>
-    <option value="price">Price</option>
-    <option value="name">Name</option>
-  </select>
-
-  <select id="sort-order" style="padding: 0.5rem;">
-    <option value="asc">Ascending</option>
-    <option value="desc">Descending</option>
-  </select>
-</div>
 
   <!-- Hero Section -->
   <section id="hero">
@@ -56,6 +42,21 @@
     <h2>🛍 Explore Our Products</h2>
     <div id="product-list" class="category-container"></div>
   </section>
+    <!-- Filter & Sort Bar -->
+<div id="filter-bar" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+  <input type="text" id="search-input" placeholder="Search products..." style="padding: 0.5rem; flex: 1; min-width: 180px;">
+
+  <select id="sort-by" style="padding: 0.5rem;">
+    <option value="">Sort by</option>
+    <option value="price">Price</option>
+    <option value="name">Name</option>
+  </select>
+
+  <select id="sort-order" style="padding: 0.5rem;">
+    <option value="asc">Ascending</option>
+    <option value="desc">Descending</option>
+  </select>
+</div>
 <section id="cart-section">
   <h2>🛒 Your Cart</h2>
   <div id="cart-list" class="cart-list"></div>
