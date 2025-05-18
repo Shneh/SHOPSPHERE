@@ -36,6 +36,33 @@ document.getElementById("search-input").addEventListener("input", (e) => {
 });
 
 
+function loadProducts(sortBy = "") {
+  fetch(`${API}/products`)
+    .then(response => response.json())
+    .then(products => {
+      // Apply sorting
+      products = sortProducts(products, sortBy);
+      
+      const productList = document.getElementById("product-list");
+      productList.innerHTML = ""; // Clear existing products
+
+      products.forEach(product => {
+        const productCard = document.createElement("div");
+        productCard.classList.add("product-card");
+
+        productCard.innerHTML = `
+          <img src="${product.image}" alt="${product.name}" />
+          <h3>${product.name}</h3>
+          <p>₹${product.price}</p>
+          <button onclick="addItemToCart('${product.name}', ${product.price})">Add to Cart</button>
+        `;
+
+        productList.appendChild(productCard);
+      });
+    })
+    .catch(error => console.error("Error loading products:", error));
+}
+
 // Call loadProducts() with sorting
 document.getElementById("sort-options").addEventListener("change", (e) => {
   loadProducts(e.target.value); // Pass the sorting option
