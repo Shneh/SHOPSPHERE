@@ -6,25 +6,23 @@ let cart = [];
 // Single loadProducts function that includes the Add to Cart button
 function loadProducts(search = "", sort = "name", order = "asc") {
   const query = `?search=${encodeURIComponent(search)}&sort=${sort}&order=${order}`;
+
   fetch(`${API}/products${query}`)
     .then(res => res.json())
     .then(products => {
       const container = document.getElementById("product-list");
-      // Build HTML for each product, including the button
       container.innerHTML = products.map(p => `
         <div class="product-card">
-          <img src="${p.image}" alt="${p.name}" loading="lazy">
+          <img src="${p.image}" alt="${p.name}">
           <h4>${p.name}</h4>
-          <p>Category: ${p.category}</p>
           <p>₹${p.price}</p>
+          <p>${p.category}</p>
           <button onclick="addItemToCart('${p.name}', ${p.price})">Add to Cart</button>
         </div>
       `).join("");
-    })
-    .catch(error => {
-      console.error("Error loading products:", error);
     });
 }
+
 
 // Single addItemToCart function that updates the cart array
 function addItemToCart(name, price) {
