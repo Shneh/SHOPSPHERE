@@ -27,22 +27,23 @@
         <li><a href="#books">Books & Education</a></li>
       </ul>
 
-    
-<!-- Filter & Sort Bar -->
-<div id="filter-bar" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
-  <input type="text" id="search-input" placeholder="Search products..." style="padding: 0.5rem; flex: 1; min-width: 180px;">
-
-  <select id="sort-by" style="padding: 0.5rem;">
-    <option value="">Sort by</option>
-    <option value="price">Price</option>
-    <option value="name">Name</option>
+    // Add a search bar and sort options
+<form id="search-form" style="margin-bottom: 1rem;">
+  <input type="text" id="search-input" placeholder="Search products..." />
+  
+  <select id="sort-by">
+    <option value="name">Sort by Name</option>
+    <option value="price">Sort by Price</option>
   </select>
-
-  <select id="sort-order" style="padding: 0.5rem;">
+  
+  <select id="sort-order">
     <option value="asc">Ascending</option>
     <option value="desc">Descending</option>
   </select>
-</div>
+  
+  <button type="submit">Apply</button>
+</form>
+
 
   <!-- Hero Section -->
   <section id="hero">

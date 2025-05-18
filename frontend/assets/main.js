@@ -9,6 +9,15 @@ function loadProducts(search = "", sort = "name", order = "asc") {
   fetch(`${API}/products${query}`)
     .then(res => res.json())
     .then(products => {
+      // Optional: sort on client-side if API doesn't do it
+      if (sort === "price") {
+        products.sort((a, b) => order === "asc" ? a.price - b.price : b.price - a.price);
+      } else if (sort === "name") {
+        products.sort((a, b) => order === "asc"
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name));
+      }
+
       const container = document.getElementById("product-list");
       container.innerHTML = products.map(p => `
         <div class="product-card">
@@ -23,6 +32,22 @@ function loadProducts(search = "", sort = "name", order = "asc") {
       console.error("Error loading products:", error);
     });
 }
+document.getElementById("search-form").addEventListener("submit", function (e) {
+  e.preventDefault();
+  
+  const search = document.getElementById("search-input").value;
+  const sort = document.getElementById("sort-by").value;
+  const order = document.getElementById("sort-order").value;
+  
+  loadProducts(search, sort, order);
+});
+document.getElementById("sort-by").addEventListener("change", () => {
+  document.getElementById("search-form").dispatchEvent(new Event("submit"));
+});
+
+document.getElementById("sort-order").addEventListener("change", () => {
+  document.getElementById("search-form").dispatchEvent(new Event("submit"));
+});
 
 
 function addItemToCart(name, price) {
@@ -120,9 +145,10 @@ function updateCart() {
 
 
 window.onload = () => {
+  loadCart();
   loadProducts();
-  updateCart();
 };
+
 
 
 
@@ -215,17 +241,7 @@ function applyDiscount() {
     });
 }
 
-window.onload = loadCart;
 
-document.getElementById("search-form").addEventListener("submit", function (e) {
-  e.preventDefault();
-  
-  const search = document.getElementById("search-input").value;
-  const sort = document.getElementById("sort-by").value;
-  const order = document.getElementById("sort-order").value;
-  
-  loadProducts(search, sort, order);
-});
 
 function sortProducts(products, sortBy) {
   if (sortBy === "price-asc") {
@@ -239,6 +255,3 @@ function sortProducts(products, sortBy) {
   }
   return products;
 }
-
-
-window.onload = () => loadProducts();
