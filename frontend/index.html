@@ -28,16 +28,21 @@
       </ul>
 
       <!-- Search Form -->
-<input type="text" id="search-input" placeholder="Search products">
-<select id="sort-by">
-  <option value="">Sort by</option>
-  <option value="price">Price</option>
-  <option value="name">Name</option>
-</select>
-<select id="sort-order">
-  <option value="asc">Ascending</option>
-  <option value="desc">Descending</option>
-</select>
+<!-- 🔍 Search + Sort Controls -->
+<div id="filter-bar" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+  <input type="text" id="search-input" placeholder="Search products..." style="padding: 0.5rem; flex: 1; min-width: 200px;">
+
+  <select id="sort-by" style="padding: 0.5rem;">
+    <option value="">Sort by</option>
+    <option value="price">Price</option>
+    <option value="name">Name</option>
+  </select>
+
+  <select id="sort-order" style="padding: 0.5rem;">
+    <option value="asc">Ascending</option>
+    <option value="desc">Descending</option>
+  </select>
+</div>
 
   <!-- Hero Section -->
   <section id="hero">

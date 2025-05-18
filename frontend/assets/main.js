@@ -267,6 +267,8 @@ function searchProducts(products, query) {
   return products.filter(product => product.name.toLowerCase().includes(query.toLowerCase()));
 }
 
+
+// Load initially
 function applyFilters() {
   const search = document.getElementById("search-input").value;
   const sortBy = document.getElementById("sort-by").value;
@@ -279,5 +281,4 @@ document.getElementById("search-input").addEventListener("input", applyFilters);
 document.getElementById("sort-by").addEventListener("change", applyFilters);
 document.getElementById("sort-order").addEventListener("change", applyFilters);
 
-// Load initially
 window.onload = () => loadProducts();
