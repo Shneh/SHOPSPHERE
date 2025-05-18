@@ -28,20 +28,17 @@
       </ul>
 
       <!-- Search Form -->
-      <form id="search-form">
-  <input type="text" id="search-input" placeholder="Search products...">
-  
+<input type="text" id="search-input" placeholder="Search products">
+<select id="sort-by">
+  <option value="">Sort by</option>
+  <option value="price">Price</option>
+  <option value="name">Name</option>
+</select>
+<select id="sort-order">
+  <option value="asc">Ascending</option>
+  <option value="desc">Descending</option>
+</select>
 
-  <select id="sort-options">
-    <option value="">Sort by</option>
-    <option value="price-asc">Price (Low to High)</option>
-    <option value="price-desc">Price (High to Low)</option>
-    <option value="name-asc">Name (A-Z)</option>
-    <option value="name-desc">Name (Z-A)</option>
-  </select>
-  
-  <button type="submit">Search</button>
-</form>
   <!-- Hero Section -->
   <section id="hero">
     <div class="hero-text">
