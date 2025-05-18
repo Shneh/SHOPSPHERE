@@ -39,11 +39,32 @@ function addItemToCart(name, price) {
 
 function updateCart() {
   const cartList = document.getElementById("cart-list");
-  if (!cartList) return;
-  cartList.innerHTML = cart.map(item => `
-    <div>${item.name} - ₹${item.price}</div>
-  `).join("");
+  const cartTotal = document.getElementById("cart-total");
+
+  if (!cartList || !cartTotal) return;
+
+  if (cart.length === 0) {
+    cartList.innerHTML = "<p>Your cart is empty.</p>";
+    cartTotal.textContent = "Total: ₹0";
+    return;
+  }
+
+  let total = 0;
+
+  cartList.innerHTML = cart.map(item => {
+    total += item.price;
+    return `
+      <div>
+        <span>${item.name}</span>
+        <span>₹${item.price}</span>
+      </div>
+    `;
+  }).join("");
+
+  cartTotal.textContent = `Total: ₹${total.toFixed(2)}`;
 }
+
+
 
 window.onload = () => {
   loadProducts();
