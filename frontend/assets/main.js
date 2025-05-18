@@ -19,6 +19,8 @@ function loadProducts() {
           <img src="${product.image}" alt="${product.name}" />
           <h3>${product.name}</h3>
           <p>₹${product.price}</p>
+          <button class="add-to-wishlist">Add to Wishlist</button>
+          <button class="add-to-cart">Add to Cart</button>
           <button onclick="addItemToCart('${product.name}', ${product.price})">Add to Cart</button>
         `;
 
