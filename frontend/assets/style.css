@@ -301,3 +301,24 @@ cursor: pointer;
 #checkout-button:hover {
   background-color: #ff3b3b;
 }
+.toast-message {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background-color: #4caf50;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 0.95rem;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 9999;
+}
+
+.toast-message.show {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}

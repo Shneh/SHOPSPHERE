@@ -35,6 +35,21 @@ function loadProducts() {
 function addItemToCart(name, price) {
   cart.push({ name, price });
   updateCart();
+  showToast(`${name} added to cart!`);
+}
+
+function showToast(message) {
+  const toast = document.getElementById("cart-toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  // Auto-hide after 2.5 seconds
+  setTimeout(() => {
+    toast.classList.remove("show");
+    toast.style.display = "none";
+  }, 2500);
+
+  toast.style.display = "block";
 }
 
 function updateCart() {
