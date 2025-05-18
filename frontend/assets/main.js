@@ -3,32 +3,46 @@ const API = "https://shopsphere-dgaa.onrender.com";
 
 let cart = [];
 
-// Single loadProducts function that includes the Add to Cart button
-async function loadProducts() {
-  try {
-    const response = await fetch(`${API}/products`);
-    const products = await response.json();
 
-    const productList = document.getElementById("product-list");
-    productList.innerHTML = "";
+function loadProducts() {
+  fetch(`${API}/products`)
+    .then(response => response.json())
+    .then(products => {
+      const productList = document.getElementById("product-list");
+      productList.innerHTML = ""; // Clear existing products
 
-    products.forEach(product => {
-      const productCard = document.createElement("div");
-      productCard.classList.add("product-card");
+      products.forEach(product => {
+        const productCard = document.createElement("div");
+        productCard.classList.add("product-card");
 
-      productCard.innerHTML = `
-        <img src="${product.image}" alt="${product.name}" />
-        <h3>${product.name}</h3>
-        <p>₹${product.price}</p>
-        <button onclick="addItemToCart('${product.name}', ${product.price})">Add to Cart</button>
-      `;
+        productCard.innerHTML = `
+          <img src="${product.image}" alt="${product.name}" />
+          <h3>${product.name}</h3>
+          <p>₹${product.price}</p>
+          <button onclick="addItemToCart('${product.name}', ${product.price})">Add to Cart</button>
+        `;
 
-      productList.appendChild(productCard);
+        productList.appendChild(productCard);
+      });
+    })
+    .catch(error => {
+      console.error("Error loading products:", error);
     });
-  } catch (error) {
-    console.error("❌ Failed to load products", error);
-  }
 }
+
+
+function updateCart() {
+  const cartList = document.getElementById("cart-list");
+  cartList.innerHTML = cart.map(item => `
+    <div>${item.name} - ₹${item.price}</div>
+  `).join("");
+}
+
+window.onload = function() {
+  loadProducts();
+  updateCart();
+};
+
 
 
 
@@ -43,22 +57,6 @@ function addItemToCart(name, price) {
   updateCart(); // Re-render cart contents if needed
 
 }
-
-// Updates the cart display (assumes an element #cart-list exists)
-function updateCart() {
-  const cartList = document.getElementById("cart-list");
-  if (!cartList) return;
-  cartList.innerHTML = cart.map(item => 
-    `<div>${item.name} - ₹${item.price}</div>`
-  ).join("");
-}
-
-
-// Use a single onload handler to initialize the page
-window.onload = function() {
-  loadProducts();
-  updateCart();
-};
 
 
 
@@ -179,13 +177,8 @@ document.getElementById("search-form").addEventListener("submit", function (e) {
 window.onload = () => loadProducts();
 
 
-window.onload = () => {
-  loadProducts();
-};
+
 function addItemToCart(name, price) {
   alert(`${name} (₹${price}) added to cart!`);
   // You can implement the real backend logic later
 }
-window.onload = () => {
-  loadProducts();
-};

@@ -119,6 +119,13 @@ nav ul li a {
   padding: 1rem;
   
 }
+.product-card {
+  border: 1px solid #ccc;
+  padding: 16px;
+  margin: 16px;
+  text-align: center;
+}
+
 .product-card button {
   padding: 8px 12px;
   background-color: #4caf50;
@@ -129,6 +136,8 @@ nav ul li a {
   cursor: pointer;
   margin-top: 10px;
 }
+
+
 
   
   .category {
@@ -208,14 +217,7 @@ nav ul li a {
       height: 140px;
     }
   }
-.product-card {
-  background: #fff;
-  padding: 1rem;
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.05);
-  text-align: center;
-  transition: transform 0.2s;
-}
+
 
 .product-card:hover {
   transform: translateY(-5px);
