@@ -7,29 +7,33 @@ app = Flask(__name__)
 CORS(app)
 
 @app.route("/products", methods=["GET"])
+@app.route("/products", methods=["GET"])
 def get_products():
-    search = request.args.get("search", "").lower()
-    sort = request.args.get("sort", "name")
-    order = request.args.get("order", "asc")
+    search_query = request.args.get("search", "").lower()
+    sort_key = request.args.get("sort", "name")  # Default sort by 'name'
+    sort_order = request.args.get("order", "asc")  # Default order 'asc'
 
     query = {}
-    if search:
-        query["name"] = {"$regex": search, "$options": "i"}
+    if search_query:
+        query["name"] = {"$regex": search_query, "$options": "i"}  # Case-insensitive search
 
-    sort_dir = 1 if order == "asc" else -1
+    sort_direction = 1 if sort_order == "asc" else -1
 
-    products = products_col.find(query).sort(sort, sort_dir)
-    output = [
-        {
-            "id": str(p["_id"]),
-            "name": p["name"],
-            "category": p.get("category", ""),
-            "price": p["price"],
-            "image": p.get("image", "")
-        }
-        for p in products
-    ]
-    return jsonify(output)
+    try:
+        cursor = products_col.find(query).sort(sort_key, sort_direction)
+        products = [
+            {
+                "id": str(p["_id"]),
+                "name": p["name"],
+                "category": p.get("category", ""),
+                "price": p["price"],
+                "image": p.get("image", "")
+            }
+            for p in cursor
+        ]
+        return jsonify(products)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # Simulated cart stored in memory
 cart = []

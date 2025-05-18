@@ -3,34 +3,27 @@ const API = "https://shopsphere-dgaa.onrender.com";
 
 let cart = [];
 
-function loadProducts() {
-  fetch(`${API}/products`)
-    .then((res) => res.json())
-    .then((products) => {
-      const productList = document.getElementById("product-list");
-      productList.innerHTML = ""; // Clear current content
-
-      products.forEach((product) => {
-        const productCard = document.createElement("div");
-        productCard.classList.add("product-card");
-
-        productCard.innerHTML = `
-          <img src="${product.image}" alt="${product.name}" />
-          <h3>${product.name}</h3>
-          <p>₹${product.price}</p>
-          <p>${product.category}</p>
-          <button onclick="addItemToCart('${product.name.replace(/'/g, "\\'")}', ${product.price})">
-            Add to Cart
-          </button>
-        `;
-
-        productList.appendChild(productCard);
-      });
+function loadProducts(search = "", sort = "name", order = "asc") {
+  const query = `?search=${encodeURIComponent(search)}&sort=${sort}&order=${order}`;
+  
+  fetch(`${API}/products${query}`)
+    .then(res => res.json())
+    .then(products => {
+      const container = document.getElementById("product-list");
+      container.innerHTML = products.map(p => `
+        <div class="product-card">
+          <img src="${p.image}" alt="${p.name}">
+          <h3>${p.name}</h3>
+          <p>₹${p.price}</p>
+          <button onclick="addItemToCart('${p.name}', ${p.price})">Add to Cart</button>
+        </div>
+      `).join("");
     })
-    .catch((error) => {
+    .catch(error => {
       console.error("Error loading products:", error);
     });
 }
+
 
 function addItemToCart(name, price) {
   const existingItem = cart.find(item => item.name === name);
@@ -226,10 +219,14 @@ window.onload = loadCart;
 
 document.getElementById("search-form").addEventListener("submit", function (e) {
   e.preventDefault();
+  
   const search = document.getElementById("search-input").value;
   const sort = document.getElementById("sort-by").value;
   const order = document.getElementById("sort-order").value;
+  
   loadProducts(search, sort, order);
 });
+
+
 
 window.onload = () => loadProducts();
