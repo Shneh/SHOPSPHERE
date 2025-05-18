@@ -120,21 +120,25 @@ nav ul li a {
   
 }
 .product-card {
-  border: 1px solid #ccc;
-  padding: 16px;
-  margin: 16px;
-  text-align: center;
+border: 1px solid #ddd;
+padding: 16px;
+margin: 8px;
+border-radius: 8px;
+text-align: center;
+max-width: 200px;
 }
-
+.product-card img {
+width: 100%;
+height: auto;
+}
 .product-card button {
-  padding: 8px 12px;
-  background-color: #4caf50;
-  border: none;
-  color: white;
-  font-weight: bold;
-  border-radius: 5px;
-  cursor: pointer;
-  margin-top: 10px;
+margin-top: 8px;
+padding: 8px 12px;
+background: #4CAF50;
+color: white;
+border: none;
+border-radius: 5px;
+cursor: pointer;
 }
 
 
@@ -223,20 +227,13 @@ nav ul li a {
   transform: translateY(-5px);
 }
 
-.product-card img {
-  max-width: 100%;
-  height: auto;
-  object-fit: cover;
-  border-radius: 8px;
-}
+
 @media (max-width: 768px) {
   h1, h2, h3 {
     font-size: 1.2rem;
   }
 
-  .product-card {
-    padding: 0.75rem;
-  }
+  
 
   nav ul {
     flex-direction: column;
