@@ -1,17 +1,16 @@
 const API = "https://shopsphere-dgaa.onrender.com";
 
-let cart = [];
-window.onload = () => {
-  loadProducts();
-};
 
+let cart = [];
+
+// Single loadProducts function that includes the Add to Cart button
 function loadProducts(search = "", sort = "name", order = "asc") {
   const query = `?search=${encodeURIComponent(search)}&sort=${sort}&order=${order}`;
-  
   fetch(`${API}/products${query}`)
     .then(res => res.json())
     .then(products => {
       const container = document.getElementById("product-list");
+      // Build HTML for each product, including the button
       container.innerHTML = products.map(p => `
         <div class="product-card">
           <img src="${p.image}" alt="${p.name}" loading="lazy">
@@ -26,6 +25,31 @@ function loadProducts(search = "", sort = "name", order = "asc") {
       console.error("Error loading products:", error);
     });
 }
+
+// Single addItemToCart function that updates the cart array
+function addItemToCart(name, price) {
+  cart.push({ name, price });
+  updateCart(); // Re-render cart contents if needed
+}
+
+// Updates the cart display (assumes an element #cart-list exists)
+function updateCart() {
+  const cartList = document.getElementById("cart-list");
+  if (!cartList) return;
+  cartList.innerHTML = cart.map(item => 
+    `<div>${item.name} - ₹${item.price}</div>`
+  ).join("");
+}
+
+
+// Use a single onload handler to initialize the page
+window.onload = function() {
+  loadProducts();
+  updateCart();
+};
+
+
+
 
 function spinWheel() {
     const rewards = [5, 10, 15, 0]; // % discount
@@ -153,15 +177,3 @@ function addItemToCart(name, price) {
 window.onload = () => {
   loadProducts();
 };
-function addItemToCart(name, price) {
-  cart.push({ name, price });
-  updateCart();
-}
-function updateCart() {
-  const cartList = document.getElementById("cart-list");
-  if (!cartList) return;
-
-  cartList.innerHTML = cart.map(item => `
-    <div>${item.name} - ₹${item.price}</div>
-  `).join("");
-}
