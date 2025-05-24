@@ -82,18 +82,26 @@ def recommend():
     return jsonify(recommendations or ["Gift Card", "Notebook"])
 
 
-@app.route('/checkout', methods=['POST'])
+from flask import request
+from datetime import datetime
+from db import orders_col  # Make sure this is imported
+
+@app.route("/checkout", methods=["POST"])
 def checkout():
     try:
         data = request.get_json()
-        order = {
-            "items": data.get("items", []),
-            "total": data.get("total", 0),
-            "timestamp": datetime.now()
-        }
-        orders_col.insert_one(order)
-        return jsonify({"message": "✅ Order placed successfully."}), 200
-    except Exception as e:
-        print("Checkout Error:", e)
-        return jsonify({"message": "❌ Failed to place order."}), 500
+        cart = data.get("cart", [])
+        if not cart:
+            return jsonify({"error": "Cart is empty"}), 400
 
+        order = {
+            "items": cart,
+            "total": sum(item["price"] for item in cart),
+            "timestamp": datetime.utcnow()
+        }
+
+        orders_col.insert_one(order)
+        return jsonify({"message": "✅ Order placed"}), 200
+    except Exception as e:
+        print("Checkout error:", e)
+        return jsonify({"error": "❌ Failed to place order"}), 500
