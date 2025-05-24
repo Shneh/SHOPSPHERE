@@ -285,3 +285,25 @@ function handleCheckout() {
     alert("Something went wrong. Please try again.");
   });
 }
+function checkout() {
+  if (cart.length === 0) {
+    alert("Your cart is empty.");
+    return;
+  }
+
+  fetch(`${API}/checkout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cart })
+  })
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("order-status").innerText = "✅ Order placed successfully!";
+    cart = [];
+    updateCart();
+  })
+  .catch(err => {
+    console.error("Checkout failed", err);
+    document.getElementById("order-status").innerText = "❌ Failed to place order.";
+  });
+}

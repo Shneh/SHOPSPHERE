@@ -82,22 +82,16 @@ def recommend():
     return jsonify(recommendations or ["Gift Card", "Notebook"])
 
 
-
 @app.route("/checkout", methods=["POST"])
 def checkout():
-    data = request.json
+    data = request.get_json()
     cart = data.get("cart", [])
-    total = data.get("total", 0)
-
     if not cart:
         return jsonify({"error": "Cart is empty"}), 400
 
     order = {
         "items": cart,
-        "total": total,
         "timestamp": datetime.utcnow()
     }
-    
-
-    orders_col.insert_one(order)
-    return jsonify({"message": "Order saved ✅"}), 200
+    db.orders.insert_one(order)
+    return jsonify({"message": "Order placed"})
