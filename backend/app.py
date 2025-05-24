@@ -82,16 +82,18 @@ def recommend():
     return jsonify(recommendations or ["Gift Card", "Notebook"])
 
 
-@app.route("/checkout", methods=["POST"])
+@app.route('/checkout', methods=['POST'])
 def checkout():
-    data = request.get_json()
-    cart = data.get("cart", [])
-    if not cart:
-        return jsonify({"error": "Cart is empty"}), 400
+    try:
+        data = request.get_json()
+        order = {
+            "items": data.get("items", []),
+            "total": data.get("total", 0),
+            "timestamp": datetime.now()
+        }
+        orders_col.insert_one(order)
+        return jsonify({"message": "✅ Order placed successfully."}), 200
+    except Exception as e:
+        print("Checkout Error:", e)
+        return jsonify({"message": "❌ Failed to place order."}), 500
 
-    order = {
-        "items": cart,
-        "timestamp": datetime.utcnow()
-    }
-    db.orders.insert_one(order)
-    return jsonify({"message": "Order placed"})
