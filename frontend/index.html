@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ShopSphere | Revolutionizing Your Cart Experience</title>
   <link rel="stylesheet" href="assets/style.css" />
-
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js"></script>
 </head>
-
 <body>
+
+
   <!-- Header -->
   <header>
     <div class="logo">
@@ -28,11 +28,30 @@
         <li><a href="#home">Home & Furniture</a></li>
         <li><a href="#fitness">Fitness & Sports</a></li>
         <li><a href="#books">Books & Education</a></li>
+        
       </ul>
-      <button id="login-toggle">🔐 Login</button>
-      <button id="logout-btn" style="display: none;" onclick="logout()">🚪 Logout</button>
-    </nav>
-  </header>
+<button id="login-toggle">🔐 Login</button>
+<button id="logout-btn" style="display: none;" onclick="logout()">🚪 Logout</button>
+
+
+
+    <!-- ADD SEARCH AND SORT BUTTONS -->
+<form id="search-form" class="search-sort-form">
+  <input type="text" id="search-input" placeholder="Search products..." />
+  
+  <select id="sort-by">
+    <option value="name">Sort by Name</option>
+    <option value="price">Sort by Price</option>
+  </select>
+  
+  <select id="sort-order">
+    <option value="asc">Ascending</option>
+    <option value="desc">Descending</option>
+  </select>
+  
+  <button type="submit">🔍 Search</button>
+</form>
+
 
   <!-- Hero Section -->
   <section id="hero">
@@ -42,28 +61,31 @@
       <button onclick="window.location.href='#electronics'">Start Exploring</button>
     </div>
   </section>
-
-  <!-- Product Section -->
   <section id="product-section">
-    <h2>🍭 Explore Our Products</h2>
+    <h2>🛍 Explore Our Products</h2>
     <div id="product-list" class="category-container"></div>
   </section>
+    
+<section id="cart-section">
+  <h2>🛒 Your Cart</h2>
+  <div id="cart-list" class="cart-list"></div>
+  <div id="cart-summary" class="cart-summary">
+    <p id="cart-total">Total: ₹0</p>
+    <button onclick="checkout()">🧾 Checkout</button>
+<div id="order-status"></div>
 
-  <!-- Cart Section -->
-  <section id="cart-section">
-    <h2>🛒 Your Cart</h2>
-    <div id="cart-list" class="cart-list"></div>
-    <div id="cart-summary" class="cart-summary">
-      <p id="cart-total">Total: ₹0</p>
-      <button onclick="checkout()">💾 Checkout</button>
-      <div id="order-status"></div>
-    </div>
-  </section>
+  </div>
+</section>
+
+
+<div id="cart-toast" class="cart-toast"></div>
+
+
 
   <!-- Categories Section -->
   <section id="categories">
     <div class="category-container">
-      <!-- Example category -->
+      <!-- Repeat for each category -->
       <div class="category" id="grocery">
         <h3>Grocery</h3>
         <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT9zQvoLA8_I3IanDq9ffzgVaXm1RryTL593Q&s" alt="Grocery">
@@ -71,27 +93,85 @@
         <button class="add-to-wishlist">Add to Wishlist</button>
         <button class="add-to-cart">Add to Cart</button>
       </div>
-      <!-- Add more categories below -->
+      
+      <div class="category" id="pet-supplies">
+        <h3>Pet Supplies</h3>
+        <img src="https://img.freepik.com/free-psd/organic-pet-food-social-media_23-2148457503.jpg" alt="Pet Supplies">
+        <p>Everything your pets need to stay happy and healthy.</p>
+        <button class="add-to-wishlist">Add to Wishlist</button>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+      
+      <!-- and so on for clothing, beauty, home, fitness, books -->
+        <div class="category" id="clothing">
+            <h3>Clothing</h3>
+            <img src="https://media.voguebusiness.com/photos/5eff2ae755b65a5f20aa3de5/master/pass/gen-z-rental-voguebus-abbie-roden_nuw-july-20-promo.jpg.jpg" alt="Clothing" />
+            <p>Fashion that fits your style.</p>
+            <button class="add-to-wishlist">Add to Wishlist</button>
+            <button class="add-to-cart">Add to Cart</button>
+        </div>
+        <div class="category" id="beauty">
+            <h3>Beauty</h3>
+            <img src="https://i.pinimg.com/736x/3a/6d/6d/3a6d6dc6a480d53e3a3eaebe61434148.jpg" alt="Beauty" />
+            <p>Enhance your natural beauty with our products.</p>
+            <button class="add-to-wishlist">Add to Wishlist</button>
+            <button class="add-to-cart">Add to Cart</button>
+        </div>
+        <div class="category" id="home">
+            <h3>Home & Furniture</h3>
+            <img src="https://i.pinimg.com/736x/e2/0c/1c/e20c1cdc1412f44103ee31e51d863e59.jpg" alt="Home & Furniture" />
+            <p>Transform your living space with our collection.</p>
+            <button class="add-to-wishlist">Add to Wishlist</button>
+            <button class="add-to-cart">Add to Cart</button>
+        </div>
+        <div class="category" id="fitness">
+            <h3>Fitness & Sports</h3>
+            <img src="https://thumbs.dreamstime.com/b/dumbbell-barbell-workout-gym-empty-space-blurred-gym-background-dumbbell-barbell-workout-gym-space-161296647.jpg" alt="Fitness & Sports" />
+            <p>Gear up for your fitness journey.</p>
+            <button class="add-to-wishlist">Add to Wishlist</button>
+            <button class="add-to-cart">Add to Cart</button>
+        </div>      
+      <div class="category" id="electronics">
+        <h3>Electronics</h3>
+        <img src="https://img.freepik.com/free-photo/still-life-wireless-cyberpunk-headphones_23-2151072230.jpg?semt=ais_hybrid&w=740" alt="Electronics" />
+        <p>Latest gadgets and devices at your fingertips.</p>
+        <button class="add-to-wishlist">Add to Wishlist</button>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+      <div class="category" id="books">
+        <h3>Books & Education</h3>
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRIjxADuzNawv0C6OwhNcY2ArmjD9_QVAs9Iw&s" alt="Books & Education" />
+        <p>Expand your knowledge with our curated selection.</p>
+        <button class="add-to-wishlist">Add to Wishlist</button>
+        <button class="add-to-cart">Add to Cart</button>
+
+      <!-- Add other categories below like Grocery, Clothing, etc. -->
+      <!-- (For brevity, not repeating here but keep your original ones) -->
     </div>
   </section>
 
-  <!-- Smart Tools -->
+  <!-- 🧠 Smart Shopping Tools -->
   <section id="shop-tools">
-    <h2>🧐 Smart Shopping Tools</h2>
+    <h2>🧠 Smart Shopping Tools</h2>
+
     <button onclick="spinWheel()">🎯 Spin for Discount</button>
     <div id="spin-result"></div>
+
     <button onclick="loadRecommendations()">✨ Show Recommendations</button>
     <div id="recommendations"></div>
+
     <button onclick="addItem()">➕ Add Demo Item</button>
     <button onclick="applyDiscount()">💸 Apply Discount</button>
+
     <h3>🛒 Cart Items</h3>
     <div id="cart-list"></div>
+
     <h3>💰 Discount Info</h3>
     <div id="discount-result"></div>
-    <button onclick="shareCart()">🛄 Share Cart</button>
-  </section>
 
-  <!-- Login Popup -->
+    <button onclick="shareCart()">📤 Share Cart</button>
+  </section>
+<!-- Login Popup -->
   <div id="login-popup" class="hidden">
     <h4>Login</h4>
     <button onclick="loginWithGoogle()">Sign in with Google</button>
@@ -105,8 +185,7 @@
       <p>Follow us on: <a href="#">Instagram</a> | <a href="#">Facebook</a> | <a href="#">Twitter</a></p>
     </div>
   </footer>
-
-  <!-- Firebase Initialization -->
+ <!-- Firebase Initialization -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyD8ZLuzCYOkg8Yfny1NfhaGzOb4--11VjA",
