@@ -25,12 +25,9 @@
         <li><a href="#home">Home & Furniture</a></li>
         <li><a href="#fitness">Fitness & Sports</a></li>
         <li><a href="#books">Books & Education</a></li>
-        <h3>🔑 Login</h3>
-        <input type="text" id="username" placeholder="Username" />
-        <input type="password" id="password" placeholder="Password" />
-        <button onclick="login()">Login</button>
-        <div id="login-status"></div>
+        
       </ul>
+<button id="login-toggle">🔐 Login</button>
 
     <!-- ADD SEARCH AND SORT BUTTONS -->
 <form id="search-form" class="search-sort-form">
@@ -190,5 +187,13 @@
       });
     });
   </script>
+  <div id="login-popup" class="hidden">
+  <h4>Login</h4>
+  <input type="text" id="username" placeholder="Username" />
+  <input type="password" id="password" placeholder="Password" />
+  <button onclick="login()">Login</button>
+  <div id="login-status"></div>
+</div>
+
 </body>
 </html>
