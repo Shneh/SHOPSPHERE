@@ -318,16 +318,32 @@ function checkout() {
     document.getElementById("order-status").innerText = "❌ Failed to place order.";
   });
 }
+
+
+
+function loginWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider)
+    .then(result => {
+      const user = result.user;
+      document.getElementById("login-status").innerText = `✅ Welcome, ${user.displayName}`;
+      document.getElementById("login-toggle").style.display = "none";
+      document.getElementById("logout-btn").style.display = "inline-block";
+    })
+    .catch(error => {
+      console.error("Login error:", error);
+      document.getElementById("login-status").innerText = "❌ Login failed";
+    });
+}
+
 firebase.auth().onAuthStateChanged(user => {
   if (user) {
-    // Logged in
     document.getElementById("login-status").innerText = `✅ Welcome, ${user.displayName}`;
     document.getElementById("login-toggle").style.display = "none";
-
-    // Optionally show logout
     document.getElementById("logout-btn").style.display = "inline-block";
   }
 });
+
 function logout() {
   firebase.auth().signOut().then(() => {
     document.getElementById("login-status").innerText = "👋 Logged out";
@@ -337,3 +353,4 @@ function logout() {
     console.error("Logout failed:", error);
   });
 }
+

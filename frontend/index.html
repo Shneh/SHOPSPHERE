@@ -215,19 +215,6 @@
       document.getElementById("login-popup").classList.toggle("hidden");
     });
 
-    // Firebase Auth: Login with Google
-    function loginWithGoogle() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      firebase.auth().signInWithPopup(provider)
-        .then(result => {
-          const user = result.user;
-          document.getElementById("login-status").innerText = `✅ Welcome, ${user.displayName}`;
-        })
-        .catch(error => {
-          console.error("Login error:", error);
-          document.getElementById("login-status").innerText = "❌ Login failed";
-        });
-    }
   </script>
 </body>
 </html>
