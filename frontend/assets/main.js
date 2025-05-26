@@ -152,12 +152,18 @@ window.onload = function () {
   if (checkoutBtn) {
     checkoutBtn.addEventListener("click", handleCheckout);
   }
-  document.getElementById("login-toggle").addEventListener("click", () => {
-  const popup = document.getElementById("login-popup");
-  popup.classList.toggle("hidden");
-});
 
 };
+document.addEventListener("DOMContentLoaded", () => {
+  const toggleBtn = document.getElementById("login-toggle");
+  const popup = document.getElementById("login-popup");
+
+  if (toggleBtn && popup) {
+    toggleBtn.addEventListener("click", () => {
+      popup.classList.toggle("hidden");
+    });
+  }
+});
 
 
 
