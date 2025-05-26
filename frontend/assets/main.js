@@ -319,8 +319,20 @@ function checkout() {
   });
 }
 
+// Firebase Initialization
+const firebaseConfig = {
+  apiKey: "AIzaSyD8ZLuzCYOkg8Yfny1NfhaGzOb4--11VjA",
+  authDomain: "shopsphere-auth.firebaseapp.com",
+  projectId: "shopsphere-auth",
+  storageBucket: "shopsphere-auth.appspot.com",
+  messagingSenderId: "684046783153",
+  appId: "1:684046783153:web:5b8f11a17e815719cf4890",
+  measurementId: "G-P3F4K7PXTD"
+};
 
+firebase.initializeApp(firebaseConfig);
 
+// Google Login Function
 function loginWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   firebase.auth().signInWithPopup(provider)
@@ -328,7 +340,7 @@ function loginWithGoogle() {
       const user = result.user;
       document.getElementById("login-status").innerText = `✅ Welcome, ${user.displayName}`;
       document.getElementById("login-toggle").style.display = "none";
-      document.getElementById("logout-btn").style.display = "inline-block";
+      document.getElementById("logout-btn").style.display = "inline-block"; // Show logout button
     })
     .catch(error => {
       console.error("Login error:", error);
@@ -336,21 +348,25 @@ function loginWithGoogle() {
     });
 }
 
-firebase.auth().onAuthStateChanged(user => {
-  if (user) {
-    document.getElementById("login-status").innerText = `✅ Welcome, ${user.displayName}`;
-    document.getElementById("login-toggle").style.display = "none";
-    document.getElementById("logout-btn").style.display = "inline-block";
-  }
-});
-
+// Logout Function
 function logout() {
   firebase.auth().signOut().then(() => {
     document.getElementById("login-status").innerText = "👋 Logged out";
     document.getElementById("login-toggle").style.display = "inline-block";
-    document.getElementById("logout-btn").style.display = "none";
+    document.getElementById("logout-btn").style.display = "none"; // Hide logout button
   }).catch(error => {
     console.error("Logout failed:", error);
   });
 }
 
+// Detect auth state changes
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById("login-status").innerText = `✅ Welcome, ${user.displayName}`;
+    document.getElementById("login-toggle").style.display = "none"; // Hide login button
+    document.getElementById("logout-btn").style.display = "inline-block"; // Show logout button
+  }
+});
+
+// Add event listener for login button
+document.getElementById("login-toggle").addEventListener("click", loginWithGoogle);
