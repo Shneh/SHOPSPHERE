@@ -10,3 +10,4 @@ products_col = db["products"]
 products_col = db["products"]
 orders_col = db["orders"]
 
+users_col = db["users"]

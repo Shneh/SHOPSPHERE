@@ -307,3 +307,21 @@ function checkout() {
     document.getElementById("order-status").innerText = "❌ Failed to place order.";
   });
 }
+function login() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  fetch(`${API}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
+  })
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("login-status").innerText =
+        data.message || data.error;
+      if (data.message) {
+        localStorage.setItem("user", username);
+      }
+    });
+}

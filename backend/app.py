@@ -105,3 +105,28 @@ def checkout():
     except Exception as e:
         print("Checkout error:", e)
         return jsonify({"error": "❌ Failed to place order"}), 500
+from flask import request, jsonify
+from werkzeug.security import generate_password_hash, check_password_hash
+from db import users_col
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+
+    if users_col.find_one({"username": username}):
+        return jsonify({"error": "Username already exists"}), 400
+
+    hashed_pw = generate_password_hash(password)
+    users_col.insert_one({"username": username, "password": hashed_pw})
+    return jsonify({"message": "✅ Registered successfully"}), 201
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    user = users_col.find_one({"username": data.get("username")})
+
+    if user and check_password_hash(user["password"], data.get("password")):
+        return jsonify({"message": "✅ Login successful"}), 200
+    return jsonify({"error": "Invalid credentials"}), 401
