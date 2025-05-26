@@ -362,3 +362,48 @@ cursor: pointer;
     gap: 8px;
   }
 }
+/* Login popup container */
+#login-popup {
+  position: fixed;
+  top: 15px;
+  right: 20px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  padding: 16px;
+  width: 250px;
+  z-index: 1000;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+/* Hide login popup initially */
+.hidden {
+  display: none;
+}
+
+/* Input fields */
+#login-popup input {
+  width: 100%;
+  padding: 8px;
+  margin: 6px 0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+/* Login button */
+#login-popup button {
+  width: 100%;
+  padding: 10px;
+  background-color: #4caf50;
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+#login-popup button:hover {
+  background-color: #388e3c;
+}

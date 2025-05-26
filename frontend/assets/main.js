@@ -318,21 +318,22 @@ function checkout() {
     document.getElementById("order-status").innerText = "❌ Failed to place order.";
   });
 }
-function login() {
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value.trim();
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    // Logged in
+    document.getElementById("login-status").innerText = `✅ Welcome, ${user.displayName}`;
+    document.getElementById("login-toggle").style.display = "none";
 
-  fetch(`${API}/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
-  })
-    .then(res => res.json())
-    .then(data => {
-      document.getElementById("login-status").innerText =
-        data.message || data.error;
-      if (data.message) {
-        localStorage.setItem("user", username);
-      }
-    });
+    // Optionally show logout
+    document.getElementById("logout-btn").style.display = "inline-block";
+  }
+});
+function logout() {
+  firebase.auth().signOut().then(() => {
+    document.getElementById("login-status").innerText = "👋 Logged out";
+    document.getElementById("login-toggle").style.display = "inline-block";
+    document.getElementById("logout-btn").style.display = "none";
+  }).catch(error => {
+    console.error("Logout failed:", error);
+  });
 }
