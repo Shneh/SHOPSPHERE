@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ShopSphere | Revolutionizing Your Cart Experience</title>
   <link rel="stylesheet" href="assets/style.css" />
-  <!-- Firebase SDKs -->
-<!-- Firebase v8 SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js"></script>
+  <!-- Firebase v9 CDN -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 
 </head>
 <body>
@@ -21,6 +20,10 @@
       <p>Revolutionizing Your Cart Experience</p>
     </div>
     <nav>
+      <button onclick="loginWithGoogle()" id="login-btn">🔐 Login with Google</button>
+<button onclick="logout()" id="logout-btn" style="display: none;">🚪 Logout</button>
+<span id="login-status"></span>
+
       <ul>
         <li><a href="#electronics">Electronics</a></li>
         <li><a href="#grocery">Grocery</a></li>

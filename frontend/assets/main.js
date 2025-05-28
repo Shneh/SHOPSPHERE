@@ -319,48 +319,45 @@ function checkout() {
   });
 }
 
-// Import from window.firebase manually
-const app = firebase.initializeApp({
-  apiKey: "AIzaSyD8ZLuzCYOkg8Yfny1NfhaGzOb4--11VjA",
-  authDomain: "shopsphere-auth.firebaseapp.com",
-  projectId: "shopsphere-auth",
-  storageBucket: "shopsphere-auth.appspot.com",
-  messagingSenderId: "684046783153",
-  appId: "1:684046783153:web:5b8f11a17e815719cf4890",
-  measurementId: "G-P3F4K7PXTD"
-});
+  const firebaseConfig = {
+    apiKey: "AIzaSyD8ZLuzCYOkg8Yfny1NfhaGzOb4--11VjA",
+    authDomain: "shopsphere-auth.firebaseapp.com",
+    projectId: "shopsphere-auth",
+    storageBucket: "shopsphere-auth.appspot.com",
+    messagingSenderId: "684046783153",
+    appId: "1:684046783153:web:5b8f11a17e815719cf4890",
+    measurementId: "G-P3F4K7PXTD"
+  };
 
-const auth = firebase.auth();
-
-function loginWithGoogle() {
+  firebase.initializeApp(firebaseConfig);
+  function loginWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider)
+  firebase.auth().signInWithPopup(provider)
     .then(result => {
       const user = result.user;
       document.getElementById("login-status").innerText = `✅ Welcome, ${user.displayName}`;
-      document.getElementById("login-toggle").style.display = "none";
+      document.getElementById("login-btn").style.display = "none";
       document.getElementById("logout-btn").style.display = "inline-block";
     })
     .catch(error => {
-      console.error("Login error:", error);
-      document.getElementById("login-status").innerText = "❌ Login failed";
+      console.error("Login failed", error);
+      alert("❌ Login failed.");
     });
 }
 
-auth.onAuthStateChanged(user => {
+function logout() {
+  firebase.auth().signOut().then(() => {
+    document.getElementById("login-status").innerText = "👋 Logged out";
+    document.getElementById("login-btn").style.display = "inline-block";
+    document.getElementById("logout-btn").style.display = "none";
+  });
+}
+
+// Auto check login status
+firebase.auth().onAuthStateChanged(user => {
   if (user) {
     document.getElementById("login-status").innerText = `✅ Welcome, ${user.displayName}`;
-    document.getElementById("login-toggle").style.display = "none";
+    document.getElementById("login-btn").style.display = "none";
     document.getElementById("logout-btn").style.display = "inline-block";
   }
 });
-
-function logout() {
-  auth.signOut().then(() => {
-    document.getElementById("login-status").innerText = "👋 Logged out";
-    document.getElementById("login-toggle").style.display = "inline-block";
-    document.getElementById("logout-btn").style.display = "none";
-  }).catch(error => {
-    console.error("Logout failed:", error);
-  });
-}
