@@ -206,20 +206,6 @@
 
   <!-- Main Script -->
   <script src="assets/main.js"></script>
-  <script>
-    // Smooth scroll
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener("click", function (e) {
-        e.preventDefault();
-        document.querySelector(this.getAttribute("href")).scrollIntoView({ behavior: "smooth" });
-      });
-    });
 
-    // Toggle login popup
-    document.getElementById("login-toggle").addEventListener("click", () => {
-      document.getElementById("login-popup").classList.toggle("hidden");
-    });
-
-  </script>
 </body>
 </html>
