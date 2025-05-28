@@ -279,29 +279,27 @@ function checkout() {
   }
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
-  console.log("Submitting order:", { cart, total, email });
 
-  fetch(`${API}/checkout`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cart, total, email })
-  })
-    .then(res => {
-      console.log("Raw response:", res);
-      if (!res.ok) throw new Error("Bad response: " + res.status);
-      return res.json();
-    })
-    .then(data => {
-      console.log("Response data:", data);
-      alert(data.message);
+  // Prepare order details as a string
+  const orderDetails = cart.map(item => `${item.name} - ₹${item.price}`).join('\n');
+
+  const templateParams = {
+    user_email: email,
+    order_details: orderDetails,
+    order_total: total
+  };
+
+  emailjs.send('service_9ez56f8', 'template_isb8uv7', templateParams)
+    .then(() => {
+      alert('✅ Order placed successfully! Confirmation email sent.');
       cart = [];
       updateCart();
-    })
-    .catch(err => {
-      console.error("Checkout failed", err);
-      alert("❌ Failed to place order.");
+    }, (error) => {
+      console.error('Failed to send email:', error);
+      alert('❌ Failed to place order.');
     });
 }
+
 
 
 
