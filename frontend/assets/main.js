@@ -319,8 +319,8 @@ function checkout() {
   });
 }
 
-// Firebase Initialization
-const firebaseConfig = {
+// Import from window.firebase manually
+const app = firebase.initializeApp({
   apiKey: "AIzaSyD8ZLuzCYOkg8Yfny1NfhaGzOb4--11VjA",
   authDomain: "shopsphere-auth.firebaseapp.com",
   projectId: "shopsphere-auth",
@@ -328,19 +328,18 @@ const firebaseConfig = {
   messagingSenderId: "684046783153",
   appId: "1:684046783153:web:5b8f11a17e815719cf4890",
   measurementId: "G-P3F4K7PXTD"
-};
+});
 
-firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 
-// Google Login Function
 function loginWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
-  firebase.auth().signInWithPopup(provider)
+  auth.signInWithPopup(provider)
     .then(result => {
       const user = result.user;
       document.getElementById("login-status").innerText = `✅ Welcome, ${user.displayName}`;
       document.getElementById("login-toggle").style.display = "none";
-      document.getElementById("logout-btn").style.display = "inline-block"; // Show logout button
+      document.getElementById("logout-btn").style.display = "inline-block";
     })
     .catch(error => {
       console.error("Login error:", error);
@@ -348,25 +347,20 @@ function loginWithGoogle() {
     });
 }
 
-// Logout Function
+auth.onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById("login-status").innerText = `✅ Welcome, ${user.displayName}`;
+    document.getElementById("login-toggle").style.display = "none";
+    document.getElementById("logout-btn").style.display = "inline-block";
+  }
+});
+
 function logout() {
-  firebase.auth().signOut().then(() => {
+  auth.signOut().then(() => {
     document.getElementById("login-status").innerText = "👋 Logged out";
     document.getElementById("login-toggle").style.display = "inline-block";
-    document.getElementById("logout-btn").style.display = "none"; // Hide logout button
+    document.getElementById("logout-btn").style.display = "none";
   }).catch(error => {
     console.error("Logout failed:", error);
   });
 }
-
-// Detect auth state changes
-firebase.auth().onAuthStateChanged(user => {
-  if (user) {
-    document.getElementById("login-status").innerText = `✅ Welcome, ${user.displayName}`;
-    document.getElementById("login-toggle").style.display = "none"; // Hide login button
-    document.getElementById("logout-btn").style.display = "inline-block"; // Show logout button
-  }
-});
-
-// Add event listener for login button
-document.getElementById("login-toggle").addEventListener("click", loginWithGoogle);
