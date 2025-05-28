@@ -272,30 +272,37 @@ function sortProducts(products, sortBy) {
 
 
 function checkout() {
-const email = prompt("Enter your email for confirmation:");
-if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-  alert("Please enter a valid email address.");
-  return;
-}
+  const email = prompt("Enter your email for confirmation:");
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    alert("Please enter a valid email address.");
+    return;
+  }
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
+  console.log("Submitting order:", { cart, total, email });
 
   fetch(`${API}/checkout`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ cart, total, email })
   })
-  .then(res => res.json())
-  .then(data => {
-    alert(data.message);
-    cart = [];
-    updateCart();
-  })
-  .catch(err => {
-    console.error("Checkout failed", err);
-    alert("❌ Failed to place order.");
-  });
+    .then(res => {
+      console.log("Raw response:", res);
+      if (!res.ok) throw new Error("Bad response: " + res.status);
+      return res.json();
+    })
+    .then(data => {
+      console.log("Response data:", data);
+      alert(data.message);
+      cart = [];
+      updateCart();
+    })
+    .catch(err => {
+      console.error("Checkout failed", err);
+      alert("❌ Failed to place order.");
+    });
 }
+
 
 
 
