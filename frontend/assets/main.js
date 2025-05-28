@@ -297,27 +297,28 @@ function handleCheckout() {
   });
 }
 function checkout() {
-  if (cart.length === 0) {
-    alert("Your cart is empty.");
-    return;
-  }
+  const email = prompt("Enter your email for confirmation:");
+  if (!email) return;
+
+  const total = cart.reduce((sum, item) => sum + item.price, 0);
 
   fetch(`${API}/checkout`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cart })
+    body: JSON.stringify({ cart, total, email })
   })
   .then(res => res.json())
   .then(data => {
-    document.getElementById("order-status").innerText = "✅ Order placed successfully!";
+    alert(data.message);
     cart = [];
     updateCart();
   })
   .catch(err => {
     console.error("Checkout failed", err);
-    document.getElementById("order-status").innerText = "❌ Failed to place order.";
+    alert("❌ Failed to place order.");
   });
 }
+
 
 
   firebase.initializeApp(firebaseConfig);
