@@ -3,8 +3,10 @@ from flask_cors import CORS
 from flask import request
 from db import products_col
 from db import orders_col
-
+from pymongo import MongoClient
 from datetime import datetime
+import smtplib
+from email.mime.text import MIMEText
 
 app = Flask(__name__)
 CORS(app)
@@ -130,3 +132,61 @@ def login():
     if user and check_password_hash(user["password"], data.get("password")):
         return jsonify({"message": "✅ Login successful"}), 200
     return jsonify({"error": "Invalid credentials"}), 401
+
+
+
+# Mongo setup
+client = MongoClient("mongodb+srv://shopsphere_user:abcdefghijklmnopqrstuvwxyz@cluster0.jlzp7sf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+db = client["shopsphere"]
+orders_col = db["orders"]
+# Email settings
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USER = "shneh2004@gmail.com"
+EMAIL_PASS = "shknoetvksoejfpw"  # Use app password, not your main password
+def send_order_email(to_email, cart, total):
+    cart_items = "\n".join([
+        f"{item.get('name', 'Item')} x {item.get('quantity', 1)} - ₹{item.get('price', 0)}"
+        for item in cart
+    ])
+    body = f"🛒 Your order:\n\n{cart_items}\n\nTotal: ₹{total}\n\nThank you for shopping at ShopSphere!"
+
+    msg = MIMEText(body)
+    msg['Subject'] = "✅ Your ShopSphere Order"
+    msg['From'] = EMAIL_USER
+    msg['To'] = to_email
+
+    with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
+        server.starttls()
+        server.login(EMAIL_USER, EMAIL_PASS)
+        server.send_message(msg)
+
+@app.route("/checkout", methods=["POST"])
+def checkout():
+    try:
+        data = request.get_json()
+        cart = data.get("cart", [])
+        total = data.get("total", 0)
+        email = data.get("email")
+
+        if not email or not cart:
+            return jsonify({"error": "Missing email or cart"}), 400
+
+        # Save order
+        order = {
+            "cart": cart,
+            "total": total,
+            "email": email,
+            "timestamp": datetime.utcnow()
+        }
+
+        orders_col.insert_one(order)
+
+        # Send email
+        send_order_email(email, cart, total)
+
+        return jsonify({"message": "✅ Order placed and email sent!"})
+    
+    except Exception as e:
+        print("Checkout error:", e)
+        return jsonify({"error": "❌ Failed to place order"}), 500

@@ -150,10 +150,10 @@ window.onload = function () {
 
   const checkoutBtn = document.getElementById("checkout-button");
   if (checkoutBtn) {
-    checkoutBtn.addEventListener("click", handleCheckout);
+    checkoutBtn.addEventListener("click", checkout); // 👈 Fix here
   }
-
 };
+
 document.addEventListener("DOMContentLoaded", () => {
   const toggleBtn = document.getElementById("login-toggle");
   const popup = document.getElementById("login-popup");
@@ -257,7 +257,6 @@ function applyDiscount() {
 }
 
 
-
 function sortProducts(products, sortBy) {
   if (sortBy === "price-asc") {
     return products.sort((a, b) => a.price - b.price);
@@ -271,34 +270,13 @@ function sortProducts(products, sortBy) {
   return products;
 }
 
-function handleCheckout() {
-  if (cart.length === 0) {
-    alert("🛒 Your cart is empty!");
-    return;
-  }
 
-  const total = cart.reduce((sum, item) => sum + item.price, 0);
-
-  fetch(`${API}/checkout`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cart, total })
-  })
-  .then(res => res.json())
-  .then(data => {
-    console.log(data.message);
-    alert("✅ Order placed! Thank you for shopping.");
-    cart = [];
-    updateCart();
-  })
-  .catch(err => {
-    console.error("❌ Order failed:", err);
-    alert("Something went wrong. Please try again.");
-  });
-}
 function checkout() {
-  const email = prompt("Enter your email for confirmation:");
-  if (!email) return;
+const email = prompt("Enter your email for confirmation:");
+if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+  alert("Please enter a valid email address.");
+  return;
+}
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
 
