@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Login - Shopsphere</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <h2>Login</h2>
+  <form id="loginForm">
+    <label>Email: <input type="email" id="email" required></label><br/>
+    <label>Password: <input type="password" id="password" required></label><br/>
+    <label>Role:
+      <select id="role">
+        <option value="customer">Customer</option>
+        <option value="retailer">Retailer</option>
+        <option value="admin">Admin</option>
+      </select>
+    </label><br/>
+    <button type="submit">Login</button>
+  </form>
+  <script>
+document.getElementById('loginForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const role = document.getElementById('role').value;
+
+  try {
+    const res = await fetch('http://localhost:5005/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, role })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      alert('Login successful! Welcome ' + data.user.name);
+
+      // redirect based on role
+      if (data.user.role === 'customer') {
+        window.location.href = 'customer.html';
+      } else if (data.user.role === 'retailer') {
+        window.location.href = 'retailer.html';
+      } else if (data.user.role === 'admin') {
+        window.location.href = 'admin.html';
+      }
+    } else {
+      alert('Login failed: ' + data.message);
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Error connecting to server');
+  }
+});
+</script>
+
+</body>
+</html>
