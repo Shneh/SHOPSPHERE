@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shopsphere Admin</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+  <h2>Admin Dashboard</h2>
+
+  <!-- Login only, no register -->
+  <h3>Login</h3>
+  <input type="email" id="adminLoginEmail" placeholder="Email">
+  <input type="password" id="adminLoginPassword" placeholder="Password">
+  <button onclick="loginAdmin()">Login</button>
+
+  <div id="message"></div>
+
+  <!-- User/Product Management -->
+  <div id="adminPanel" style="display:none;">
+    <h3>Users</h3>
+    <div id="usersList"></div>
+
+    <h3>Products</h3>
+    <div id="allProductsList"></div>
+  </div>
+</div>
+
+<script>
+let adminId = null;
+
+// --- Login Admin ---
+async function loginAdmin() {
+  const email = document.getElementById('adminLoginEmail').value;
+  const password = document.getElementById('adminLoginPassword').value;
+
+  if (!email || !password) {
+    document.getElementById('message').innerText = "❌ All fields are required";
+    return;
+  }
+
+  const res = await fetch('http://localhost:5015/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, role: 'admin' })
+  });
+  const data = await res.json();
+
+  if (res.ok) {
+    adminId = data.user.id;
+    document.getElementById('message').innerText = `✅ Logged in as ${data.user.name}`;
+    document.getElementById('adminPanel').style.display = "block";
+    fetchUsers();
+    fetchAllProducts();
+  } else {
+    document.getElementById('message').innerText = data.message;
+  }
+}
+
+// --- Fetch Users ---
+async function fetchUsers() {
+  const res = await fetch('http://localhost:5015/users');
+  const users = await res.json();
+  const container = document.getElementById('usersList');
+  container.innerHTML = "";
+
+  users.forEach(user => {
+    const div = document.createElement("div");
+    div.innerHTML = `
+      ${user.user_id} | ${user.full_name} | ${user.email} | ${user.role} 
+      <button onclick="deleteUser(${user.user_id})">Delete</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// --- Delete User ---
+async function deleteUser(userId) {
+  if (!confirm("❌ Delete this user?")) return;
+
+  const res = await fetch(`http://localhost:5015/users/${userId}`, { method: "DELETE" });
+  const data = await res.json();
+  document.getElementById('message').innerText = data.message;
+  fetchUsers();
+}
+
+// --- Fetch All Products ---
+async function fetchAllProducts() {
+  const res = await fetch('http://localhost:5015/products');
+  const products = await res.json();
+  const container = document.getElementById('allProductsList');
+  container.innerHTML = "";
+
+  products.forEach(prod => {
+    const div = document.createElement("div");
+    div.innerHTML = `
+      ${prod.product_id} | ${prod.name} | ${prod.description} | ${prod.price} | ${prod.stock} 
+      <button onclick="deleteProduct(${prod.product_id})">Delete</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// --- Delete Product ---
+async function deleteProduct(productId) {
+  if (!confirm("❌ Delete this product?")) return;
+
+  const res = await fetch(`http://localhost:5015/product/${productId}`, { method: "DELETE" });
+  const data = await res.json();
+  document.getElementById('message').innerText = data.message;
+  fetchAllProducts();
+}
+</script>
+
+</body>
+</html>

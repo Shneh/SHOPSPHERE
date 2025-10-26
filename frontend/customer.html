@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shopsphere Customer</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+  <h2>Customer Login / Register</h2>
+
+  <!-- Register Block -->
+  <h3>Register</h3>
+  <input type="text" id="custName" placeholder="Full Name">
+  <input type="email" id="custEmail" placeholder="Email">
+  <input type="password" id="custPassword" placeholder="Password">
+  <button onclick="registerCustomer()">Register</button>
+
+  <!-- Login Block -->
+  <h3>Login</h3>
+  <input type="email" id="custLoginEmail" placeholder="Email">
+  <input type="password" id="custLoginPassword" placeholder="Password">
+  <button onclick="loginCustomer()">Login</button>
+
+  <div id="message"></div>
+
+  <!-- Product Listing -->
+   <h3>Search Products</h3>
+<input type="text" id="searchQuery" placeholder="Search by name or description">
+<button onclick="searchProducts()">Search</button>
+
+<h3>Recommended for You</h3>
+<div id="recommendationsList"></div>
+
+  <div id="productList" style="display:none;">
+    <h3>Available Products</h3>
+    <table id="productsTable">
+      <thead>
+        <tr>
+          <th>Name</th><th>Description</th><th>Price</th><th>Stock</th><th>Buy</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let customerId = null;
+
+// --- Register Customer ---
+async function registerCustomer() {
+  const name = document.getElementById('custName').value;
+  const email = document.getElementById('custEmail').value;
+  const password = document.getElementById('custPassword').value;
+
+  if (!name || !email || !password) {
+    document.getElementById('message').innerText = "❌ All fields are required";
+    return;
+  }
+
+  const res = await fetch('http://localhost:5015/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password, role: 'customer' })
+  });
+  const data = await res.json();
+  document.getElementById('message').innerText = data.message;
+}
+
+// --- Login Customer ---
+async function loginCustomer() {
+  const email = document.getElementById('custLoginEmail').value;
+  const password = document.getElementById('custLoginPassword').value;
+
+  if (!email || !password) {
+    document.getElementById('message').innerText = "❌ All fields are required";
+    return;
+  }
+
+  const res = await fetch('http://localhost:5015/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, role: 'customer' })
+  });
+  const data = await res.json();
+
+  if (res.ok) {
+    customerId = data.user.id;
+    document.getElementById('message').innerText = `✅ Logged in as ${data.user.name}`;
+    document.getElementById('productList').style.display = "block";
+    fetchProducts();
+  } else {
+    document.getElementById('message').innerText = data.message;
+  }
+}
+
+// --- Fetch Products ---
+async function fetchProducts() {
+  const res = await fetch('http://localhost:5015/products');
+  const products = await res.json();
+  const tbody = document.querySelector("#productsTable tbody");
+  tbody.innerHTML = "";
+
+  products.forEach(prod => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${prod.name}</td>
+      <td>${prod.description}</td>
+      <td>${prod.price}</td>
+      <td>${prod.stock}</td>
+      <td><button onclick="buyProduct(${prod.product_id})">Buy</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// --- Buy Product ---
+async function buyProduct(productId) {
+  alert(`🛒 Buying product ID: ${productId} (implement actual purchase logic)`);
+}
+// --- Search Products ---
+async function searchProducts() {
+  const query = document.getElementById('searchQuery').value;
+  if (!query) return;
+
+  const res = await fetch(`http://localhost:5015/search?query=${encodeURIComponent(query)}`);
+  const products = await res.json();
+
+  const tbody = document.querySelector("#productsTable tbody");
+  tbody.innerHTML = "";
+
+  if (products.length === 0) {
+    tbody.innerHTML = "<tr><td colspan='5'>No products found</td></tr>";
+    return;
+  }
+
+  products.forEach(prod => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${prod.name}</td>
+      <td>${prod.description}</td>
+      <td>${prod.price}</td>
+      <td>${prod.stock}</td>
+      <td><button onclick="buyProduct(${prod.product_id})">Buy</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// --- Fetch Recommendations ---
+async function fetchRecommendations() {
+  const res = await fetch('http://localhost:5015/recommendations');
+  const products = await res.json();
+  const container = document.getElementById('recommendationsList');
+  container.innerHTML = "";
+
+  products.forEach(prod => {
+    const div = document.createElement("div");
+    div.style.border = "1px solid #ccc";
+    div.style.margin = "5px";
+    div.style.padding = "5px";
+    div.innerHTML = `
+      <b>${prod.name}</b> - ₹${prod.price}<br>
+      ${prod.description}
+      <button onclick="buyProduct(${prod.product_id})">Buy</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// --- Call on page load ---
+fetchRecommendations();
+</script>
+
+</body>
+</html>
