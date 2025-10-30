@@ -2,38 +2,200 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Shopsphere Customer</title>
-<link rel="stylesheet" href="styles.css">
+<title>Shopsphere | Customer Portal</title>
+<link rel="icon" href="https://cdn-icons-png.flaticon.com/512/891/891462.png">
+<style>
+  /* ---------- GLOBAL ---------- */
+  * {
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  body {
+    background: linear-gradient(135deg, #eaf3ff, #ffffff, #f1f7ff);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    color: #333;
+  }
+
+  .container {
+    background: #fff;
+    margin-top: 50px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 118, 255, 0.15);
+    padding: 40px 50px;
+    width: 90%;
+    max-width: 800px;
+    text-align: center;
+    animation: fadeIn 0.7s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  h2 {
+    background: linear-gradient(90deg, #0078ff, #00c6ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 2rem;
+    margin-bottom: 10px;
+  }
+
+  h3 {
+    color: #0078ff;
+    margin-top: 30px;
+    margin-bottom: 10px;
+  }
+
+  input {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    transition: 0.3s;
+  }
+
+  input:focus {
+    border-color: #0078ff;
+    outline: none;
+    box-shadow: 0 0 6px rgba(0, 118, 255, 0.2);
+  }
+
+  button {
+    background: linear-gradient(90deg, #0078ff, #00c6ff);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+  }
+
+  button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 118, 255, 0.3);
+  }
+
+  #message {
+    margin-top: 15px;
+    font-weight: 500;
+  }
+
+  /* ---------- PRODUCT TABLE ---------- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+  }
+
+  th, td {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 10px;
+    text-align: center;
+  }
+
+  th {
+    background-color: #f8fbff;
+    color: #0078ff;
+    font-weight: 600;
+  }
+
+  td button {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    background: #00c6ff;
+  }
+
+  /* ---------- RECOMMENDATIONS ---------- */
+  #recommendationsList {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  #recommendationsList div {
+    background: #f8fbff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 118, 255, 0.08);
+    padding: 12px 15px;
+    width: 230px;
+    transition: 0.3s;
+  }
+
+  #recommendationsList div:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 118, 255, 0.15);
+  }
+
+  #recommendationsList button {
+    margin-top: 6px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    background: linear-gradient(90deg, #0078ff, #00c6ff);
+  }
+
+  /* ---------- SEARCH ---------- */
+  #searchQuery {
+    width: 70%;
+    margin-right: 10px;
+  }
+
+  /* ---------- MOBILE ---------- */
+  @media (max-width: 600px) {
+    .container {
+      padding: 25px;
+    }
+    #searchQuery {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+  }
+</style>
 </head>
+
 <body>
 <div class="container">
-  <h2>Customer Login / Register</h2>
+  <h2>🛍️ Shopsphere Customer Portal</h2>
+  <p style="color:#666;font-size:0.95rem;">Register, login, and explore personalized products just for you.</p>
 
   <!-- Register Block -->
-  <h3>Register</h3>
+  <h3>New User? Register Here</h3>
   <input type="text" id="custName" placeholder="Full Name">
   <input type="email" id="custEmail" placeholder="Email">
   <input type="password" id="custPassword" placeholder="Password">
   <button onclick="registerCustomer()">Register</button>
 
   <!-- Login Block -->
-  <h3>Login</h3>
+  <h3>Already Registered? Login</h3>
   <input type="email" id="custLoginEmail" placeholder="Email">
   <input type="password" id="custLoginPassword" placeholder="Password">
   <button onclick="loginCustomer()">Login</button>
 
   <div id="message"></div>
 
+  <!-- Search Products -->
+  <h3>🔎 Search Products</h3>
+  <input type="text" id="searchQuery" placeholder="Search by name or description">
+  <button onclick="searchProducts()">Search</button>
+
+  <!-- Recommendations -->
+  <h3>✨ Recommended for You</h3>
+  <div id="recommendationsList"></div>
+
   <!-- Product Listing -->
-   <h3>Search Products</h3>
-<input type="text" id="searchQuery" placeholder="Search by name or description">
-<button onclick="searchProducts()">Search</button>
-
-<h3>Recommended for You</h3>
-<div id="recommendationsList"></div>
-
   <div id="productList" style="display:none;">
-    <h3>Available Products</h3>
+    <h3>📦 Available Products</h3>
     <table id="productsTable">
       <thead>
         <tr>
@@ -50,12 +212,12 @@ let customerId = null;
 
 // --- Register Customer ---
 async function registerCustomer() {
-  const name = document.getElementById('custName').value;
-  const email = document.getElementById('custEmail').value;
-  const password = document.getElementById('custPassword').value;
+  const name = document.getElementById('custName').value.trim();
+  const email = document.getElementById('custEmail').value.trim();
+  const password = document.getElementById('custPassword').value.trim();
 
   if (!name || !email || !password) {
-    document.getElementById('message').innerText = "❌ All fields are required";
+    showMessage("❌ All fields are required", "red");
     return;
   }
 
@@ -65,16 +227,16 @@ async function registerCustomer() {
     body: JSON.stringify({ name, email, password, role: 'customer' })
   });
   const data = await res.json();
-  document.getElementById('message').innerText = data.message;
+  showMessage(data.message, res.ok ? "green" : "red");
 }
 
 // --- Login Customer ---
 async function loginCustomer() {
-  const email = document.getElementById('custLoginEmail').value;
-  const password = document.getElementById('custLoginPassword').value;
+  const email = document.getElementById('custLoginEmail').value.trim();
+  const password = document.getElementById('custLoginPassword').value.trim();
 
   if (!email || !password) {
-    document.getElementById('message').innerText = "❌ All fields are required";
+    showMessage("❌ All fields are required", "red");
     return;
   }
 
@@ -87,11 +249,11 @@ async function loginCustomer() {
 
   if (res.ok) {
     customerId = data.user.id;
-    document.getElementById('message').innerText = `✅ Logged in as ${data.user.name}`;
+    showMessage(`✅ Logged in as ${data.user.name}`, "green");
     document.getElementById('productList').style.display = "block";
     fetchProducts();
   } else {
-    document.getElementById('message').innerText = data.message;
+    showMessage(data.message, "red");
   }
 }
 
@@ -107,7 +269,7 @@ async function fetchProducts() {
     tr.innerHTML = `
       <td>${prod.name}</td>
       <td>${prod.description}</td>
-      <td>${prod.price}</td>
+      <td>₹${prod.price}</td>
       <td>${prod.stock}</td>
       <td><button onclick="buyProduct(${prod.product_id})">Buy</button></td>
     `;
@@ -117,11 +279,12 @@ async function fetchProducts() {
 
 // --- Buy Product ---
 async function buyProduct(productId) {
-  alert(`🛒 Buying product ID: ${productId} (implement actual purchase logic)`);
+  alert(`🛒 Buying product ID: ${productId} (implement purchase logic)`);
 }
+
 // --- Search Products ---
 async function searchProducts() {
-  const query = document.getElementById('searchQuery').value;
+  const query = document.getElementById('searchQuery').value.trim();
   if (!query) return;
 
   const res = await fetch(`http://localhost:5015/search?query=${encodeURIComponent(query)}`);
@@ -140,7 +303,7 @@ async function searchProducts() {
     tr.innerHTML = `
       <td>${prod.name}</td>
       <td>${prod.description}</td>
-      <td>${prod.price}</td>
+      <td>₹${prod.price}</td>
       <td>${prod.stock}</td>
       <td><button onclick="buyProduct(${prod.product_id})">Buy</button></td>
     `;
@@ -157,21 +320,24 @@ async function fetchRecommendations() {
 
   products.forEach(prod => {
     const div = document.createElement("div");
-    div.style.border = "1px solid #ccc";
-    div.style.margin = "5px";
-    div.style.padding = "5px";
     div.innerHTML = `
-      <b>${prod.name}</b> - ₹${prod.price}<br>
-      ${prod.description}
+      <b>${prod.name}</b><br>
+      ₹${prod.price}<br>
+      <small>${prod.description}</small><br>
       <button onclick="buyProduct(${prod.product_id})">Buy</button>
     `;
     container.appendChild(div);
   });
 }
 
-// --- Call on page load ---
+// --- Utility: Message display ---
+function showMessage(text, color) {
+  const msg = document.getElementById('message');
+  msg.innerText = text;
+  msg.style.color = color;
+}
+
 fetchRecommendations();
 </script>
-
 </body>
 </html>
