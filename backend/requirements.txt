@@ -2,3 +2,6 @@ flask
 flask-cors
 pymongo
 dnspython
+Flask-SQLAlchemy
+mysqlclient   # or PyMySQL or mysql-connector depending on driver
+Flask-Migrate  # optional but very helpful for migrations
