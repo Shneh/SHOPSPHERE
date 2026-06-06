@@ -14,7 +14,8 @@ app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_super_secret_key_change_in_prod')
 
-DATABASE = 'shopsphere.db'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE = os.path.join(BASE_DIR, 'shopsphere.db')
 
 # ----------------- SQLITE UTILITIES -----------------
 def get_db():
@@ -646,7 +647,9 @@ def update_user_role(current_user, user_id):
     return jsonify({"message": "Updated"})
 
 
+# Initialize the database immediately when app.py is loaded (works for both local and Gunicorn)
+init_db()
+
 if __name__ == "__main__":
-    init_db()
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=True)
