@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: shopsphere-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:10000 --chdir backend app:app
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: SECRET_KEY
+        value: your_secret_key_here
