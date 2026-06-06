@@ -1,192 +1,652 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from flask import request
-from db import products_col
-from db import orders_col
-from pymongo import MongoClient
-from datetime import datetime
+import os
+import json
+import sqlite3
+import datetime
 import smtplib
 from email.mime.text import MIMEText
+from functools import wraps
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
 
 app = Flask(__name__)
 CORS(app)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_super_secret_key_change_in_prod')
 
-@app.route("/products", methods=["GET"])
-def get_products():
-    search_query = request.args.get("search", "").lower()
-    sort_key = request.args.get("sort", "name")  # Default sort by 'name'
-    sort_order = request.args.get("order", "asc")  # Default order 'asc'
+DATABASE = 'shopsphere.db'
 
-    query = {}
-    if search_query:
-        query["name"] = {"$regex": search_query, "$options": "i"}  # Case-insensitive search
+# ----------------- SQLITE UTILITIES -----------------
+def get_db():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-    sort_direction = 1 if sort_order == "asc" else -1
-
+def db_query(query, args=(), one=False, commit=False):
+    conn = get_db()
+    cursor = conn.cursor()
     try:
-        cursor = products_col.find(query).sort(sort_key, sort_direction)
-        products = [
-            {
-                "id": str(p["_id"]),
-                "name": p["name"],
-                "category": p.get("category", ""),
-                "price": p["price"],
-                "image": p.get("image", "")
-            }
-            for p in cursor
-        ]
-        return jsonify(products)
+        cursor.execute(query, args)
+        if commit:
+            conn.commit()
+            result = cursor.lastrowid
+        else:
+            rv = cursor.fetchall()
+            result = (rv[0] if rv else None) if one else rv
+            if result is not None:
+                if isinstance(result, sqlite3.Row):
+                    result = dict(result)
+                elif isinstance(result, list):
+                    result = [dict(row) for row in result]
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+    return result
 
-# Simulated cart stored in memory
-cart = []
-
-@app.route("/")
-def home():
-    return "ShopSphere Backend Running"
-
-@app.route("/add_to_cart", methods=["POST"])
-def add_to_cart():
-    item = request.json
-    cart.append(item)
-    return jsonify({"message": "Item added to cart", "cart": cart})
-
-@app.route("/get_cart", methods=["GET"])
-def get_cart():
-    return jsonify(cart)
-
-@app.route("/apply_discount", methods=["POST"])
-def apply_discount():
-    data = request.json
-    total = data.get("total", 0)
-    discount = total * 0.1  # 10% discount
-    discounted_total = total - discount
-    return jsonify({
-        "original": total,
-        "discount": discount,
-        "final": discounted_total
-    })
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
-@app.route("/recommend", methods=["GET"])
-def recommend():
-    # Simple logic based on what’s in cart
-    keywords = [item['name'].lower() for item in cart]
-    recommendations = []
-
-    if any("sneaker" in name for name in keywords):
-        recommendations.append("Running Socks")
-    if any("shirt" in name for name in keywords):
-        recommendations.append("Tie Clip")
-
-    return jsonify(recommendations or ["Gift Card", "Notebook"])
-
-
-from flask import request
-from datetime import datetime
-from db import orders_col  # Make sure this is imported
-
-@app.route("/checkout", methods=["POST"])
-def checkout():
+def init_db():
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Create tables if they do not exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL,
+            xp INTEGER DEFAULT 0,
+            points INTEGER DEFAULT 0,
+            badges TEXT DEFAULT '[]',
+            streak INTEGER DEFAULT 1,
+            last_active TEXT
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            category TEXT,
+            price REAL NOT NULL,
+            stock INTEGER NOT NULL,
+            image TEXT,
+            retailer_id INTEGER NOT NULL
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            email TEXT,
+            cart_json TEXT NOT NULL,
+            total REAL NOT NULL,
+            status TEXT NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Dynamic schema upgrades for old sqlite tables
+    # Check for xp
     try:
-        data = request.get_json()
-        cart = data.get("cart", [])
-        if not cart:
-            return jsonify({"error": "Cart is empty"}), 400
+        cursor.execute("SELECT xp FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE users ADD COLUMN xp INTEGER DEFAULT 0")
+    
+    # Check for points
+    try:
+        cursor.execute("SELECT points FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE users ADD COLUMN points INTEGER DEFAULT 0")
+        
+    # Check for badges
+    try:
+        cursor.execute("SELECT badges FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE users ADD COLUMN badges TEXT DEFAULT '[]'")
+        
+    # Check for streak
+    try:
+        cursor.execute("SELECT streak FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE users ADD COLUMN streak INTEGER DEFAULT 1")
+        
+    # Check for last_active
+    try:
+        cursor.execute("SELECT last_active FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE users ADD COLUMN last_active TEXT")
+        
+    conn.commit()
+    conn.close()
+    
+    seed_products_if_empty()
 
-        order = {
-            "items": cart,
-            "total": sum(item["price"] for item in cart),
-            "timestamp": datetime.utcnow()
-        }
+def seed_products_if_empty():
+    count = db_query("SELECT COUNT(*) as cnt FROM products", one=True)
+    if count and count["cnt"] > 0:
+        return
+        
+    products = [
+        # Electronics
+        ("Cyberpunk Headphones", "Electronics", 2999.00, 15, "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80", 1),
+        ("Smart Watch Series 9", "Electronics", 4999.00, 20, "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80", 1),
+        ("Ultra Slim Laptop", "Electronics", 59999.00, 8, "https://images.unsplash.com/photo-1496181130204-755241524eab?w=500&q=80", 1),
+        ("Mechanical Keyboard", "Electronics", 1999.00, 30, "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&q=80", 1),
+        
+        # Clothing
+        ("Classic Denim Jacket", "Clothing", 1499.00, 25, "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=500&q=80", 1),
+        ("Casual Cotton T-Shirt", "Clothing", 499.00, 50, "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80", 1),
+        ("Warm Winter Hoodie", "Clothing", 1199.00, 15, "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=500&q=80", 1),
+        
+        # Grocery
+        ("Capsicum-Green", "Grocery", 80.00, 100, "https://www.bbassets.com/media/uploads/p/m/10000067_26-fresho-capsicum-green.jpg?tr=w-154,q-80", 1),
+        ("Carrot-Orange", "Grocery", 38.00, 100, "https://www.bbassets.com/media/uploads/p/m/10000070_16-fresho-carrot-orange.jpg?tr=w-154,q-80", 1),
+        ("Apple Washington", "Grocery", 280.00, 80, "https://www.bbassets.com/media/uploads/p/m/40119549_1-fresho-apple-washington-113-count.jpg?tr=w-154,q-80", 1),
+        ("Moong Dal Regular", "Grocery", 159.80, 50, "https://www.bbassets.com/media/uploads/p/m/40133880_1-institutional-moong-dal-regular.jpg?tr=w-154,q-80", 1),
+        ("Heritage Cow Ghee", "Grocery", 621.00, 40, "https://www.bbassets.com/media/uploads/p/m/40268426_2-heritage-cow-ghee-rich-in-vitamins-minerals-healthy-taste.jpg?tr=w-154,q-80", 1),
+        
+        # Home & Furniture
+        ("Ergonomic Office Chair", "Home & Furniture", 6999.00, 10, "https://images.unsplash.com/photo-1505797149-43b0069ec26b?w=500&q=80", 1),
+        ("Minimalist Desk Lamp", "Home & Furniture", 999.00, 15, "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500&q=80", 1),
+        ("Ceramic Flower Vase", "Home & Furniture", 599.00, 35, "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=500&q=80", 1),
+        
+        # Books & Education
+        ("Science Fiction Novel", "Books & Education", 399.00, 45, "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=500&q=80", 1),
+        ("Python Programming Guide", "Books & Education", 799.00, 20, "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=500&q=80", 1),
+        ("Drawing Sketchbook", "Books & Education", 299.00, 60, "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=500&q=80", 1)
+    ]
+    
+    for name, cat, price, stock, img, ret_id in products:
+        db_query(
+            "INSERT INTO products (name, category, price, stock, image, retailer_id) VALUES (?, ?, ?, ?, ?, ?)",
+            (name, cat, price, stock, img, ret_id),
+            commit=True
+        )
+    print("✅ Seeded products table successfully.")
 
-        orders_col.insert_one(order)
-        return jsonify({"message": "✅ Order placed"}), 200
+
+# ----------------- EMAIL SETUP -----------------
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USER = os.environ.get('EMAIL_USER', "shneh2004@gmail.com")
+EMAIL_PASS = os.environ.get('EMAIL_PASS', "shknoetvksoejfpw")
+
+def send_order_email(to_email, order_items, total):
+    try:
+        cart_items = "\n".join([
+            f"{item.get('name', 'Item')} x {item.get('quantity', 1)} - ₹{item.get('price', 0)}"
+            for item in order_items
+        ])
+        body = f"🛒 Your order has been placed successfully:\n\n{cart_items}\n\nTotal: ₹{total}\n\nThank you for shopping at ShopSphere!"
+        msg = MIMEText(body)
+        msg['Subject'] = "✅ Your ShopSphere Order"
+        msg['From'] = EMAIL_USER
+        msg['To'] = to_email
+
+        with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_USER, EMAIL_PASS)
+            server.send_message(msg)
     except Exception as e:
-        print("Checkout error:", e)
-        return jsonify({"error": "❌ Failed to place order"}), 500
-from flask import request, jsonify
-from werkzeug.security import generate_password_hash, check_password_hash
-from db import users_col
+        print("Mocked/Failed to send email:", e)
 
+
+# ----------------- JWT DECORATORS -----------------
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'error': 'Token is missing!'}), 401
+        try:
+            token = token.split(" ")[1]
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            user = db_query("SELECT * FROM users WHERE id = ?", (int(data['user_id']),), one=True)
+            if not user:
+                raise Exception("User not found")
+        except Exception as e:
+            return jsonify({'error': 'Token is invalid!'}), 401
+        return f(user, *args, **kwargs)
+    return decorated
+
+def role_required(*allowed_roles):
+    def decorator(f):
+        @wraps(f)
+        def decorated(current_user, *args, **kwargs):
+            if current_user.get('role', 'user') not in allowed_roles:
+                return jsonify({'error': 'You do not have permission to perform this action'}), 403
+            return f(current_user, *args, **kwargs)
+        return decorated
+    return decorator
+
+
+# ----------------- AUTH ENDPOINTS -----------------
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
+    role = data.get("role", "user")
+    
+    if not username or not password:
+        return jsonify({"error": "Missing username or password"}), 400
 
-    if users_col.find_one({"username": username}):
+    existing = db_query("SELECT id FROM users WHERE username = ?", (username,), one=True)
+    if existing:
         return jsonify({"error": "Username already exists"}), 400
 
     hashed_pw = generate_password_hash(password)
-    users_col.insert_one({"username": username, "password": hashed_pw})
-    return jsonify({"message": "✅ Registered successfully"}), 201
+    
+    # Grant initial loyalty setup
+    initial_xp = 100
+    initial_points = 50
+    initial_badges = json.dumps(["welcome"])
+    
+    user_id = db_query(
+        "INSERT INTO users (username, password, role, xp, points, badges, streak) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (username, hashed_pw, role, initial_xp, initial_points, initial_badges, 1),
+        commit=True
+    )
+    return jsonify({"message": "✅ Registered successfully", "user_id": user_id}), 201
 
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    user = users_col.find_one({"username": data.get("username")})
-
-    if user and check_password_hash(user["password"], data.get("password")):
-        return jsonify({"message": "✅ Login successful"}), 200
+    username = data.get("username")
+    password = data.get("password")
+    
+    user = db_query("SELECT * FROM users WHERE username = ?", (username,), one=True)
+    
+    if user and check_password_hash(user["password"], password):
+        token = jwt.encode({
+            'user_id': user['id'],
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+        }, app.config['SECRET_KEY'], algorithm="HS256")
+        
+        # If jwt.encode outputs as bytes, convert to string
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+            
+        return jsonify({
+            "token": token,
+            "user": {
+                "id": user["id"], 
+                "username": user["username"], 
+                "role": user["role"],
+                "xp": user["xp"],
+                "points": user["points"],
+                "badges": json.loads(user["badges"])
+            }
+        }), 200
+        
     return jsonify({"error": "Invalid credentials"}), 401
 
+@app.route('/me', methods=['GET'])
+@token_required
+def get_me(current_user):
+    return jsonify({
+        "id": current_user['id'], 
+        "username": current_user["username"], 
+        "role": current_user["role"],
+        "xp": current_user["xp"],
+        "points": current_user["points"],
+        "badges": json.loads(current_user["badges"])
+    })
 
 
-# Mongo setup
-client = MongoClient("mongodb+srv://shopsphere_user:abcdefghijklmnopqrstuvwxyz@cluster0.jlzp7sf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-db = client["shopsphere"]
-orders_col = db["orders"]
-# Email settings
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USER = "shneh2004@gmail.com"
-EMAIL_PASS = "shknoetvksoejfpw"  # Use app password, not your main password
-def send_order_email(to_email, cart, total):
-    cart_items = "\n".join([
-        f"{item.get('name', 'Item')} x {item.get('quantity', 1)} - ₹{item.get('price', 0)}"
-        for item in cart
-    ])
-    body = f"🛒 Your order:\n\n{cart_items}\n\nTotal: ₹{total}\n\nThank you for shopping at ShopSphere!"
+# ----------------- PRODUCT ENDPOINTS -----------------
+@app.route("/products", methods=["GET"])
+def get_products():
+    search = request.args.get("search", "").lower()
+    category = request.args.get("category", "")
+    
+    query = "SELECT * FROM products WHERE 1=1"
+    params = []
+    
+    if search:
+        query += " AND (LOWER(name) LIKE ? OR LOWER(category) LIKE ?)"
+        params.append(f"%{search}%")
+        params.append(f"%{search}%")
+        
+    if category and category != "All":
+        query += " AND category = ?"
+        params.append(category)
+        
+    products = db_query(query, tuple(params))
+    return jsonify(products)
 
-    msg = MIMEText(body)
-    msg['Subject'] = "✅ Your ShopSphere Order"
-    msg['From'] = EMAIL_USER
-    msg['To'] = to_email
+@app.route("/products", methods=["POST"])
+@token_required
+@role_required('retailer', 'admin')
+def add_product(current_user):
+    data = request.json
+    name = data.get("name")
+    price = float(data.get("price", 0))
+    stock = int(data.get("stock", 0))
+    category = data.get("category", "Uncategorized")
+    image = data.get("image", "")
+    retailer_id = current_user["id"]
+    
+    # Gain 50 XP for listing a product!
+    db_query("UPDATE users SET xp = xp + 50 WHERE id = ?", (current_user["id"],), commit=True)
+    
+    prod_id = db_query(
+        "INSERT INTO products (name, category, price, stock, image, retailer_id) VALUES (?, ?, ?, ?, ?, ?)",
+        (name, category, price, stock, image, retailer_id),
+        commit=True
+    )
+    return jsonify({"message": "Product added", "product": {"id": prod_id}}), 201
 
-    with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
-        server.starttls()
-        server.login(EMAIL_USER, EMAIL_PASS)
-        server.send_message(msg)
+@app.route("/products/<int:product_id>", methods=["PUT"])
+@token_required
+@role_required('retailer', 'admin')
+def update_product(current_user, product_id):
+    data = request.json
+    prod = db_query("SELECT * FROM products WHERE id = ?", (product_id,), one=True)
+    
+    if not prod:
+        return jsonify({"error": "Not found"}), 404
+        
+    if current_user["role"] == "retailer" and prod["retailer_id"] != current_user["id"]: 
+        return jsonify({"error": "Not yours"}), 403
+
+    name = data.get("name", prod["name"])
+    category = data.get("category", prod["category"])
+    price = float(data.get("price", prod["price"]))
+    stock = int(data.get("stock", prod["stock"]))
+    image = data.get("image", prod["image"])
+    
+    db_query(
+        "UPDATE products SET name = ?, category = ?, price = ?, stock = ?, image = ? WHERE id = ?",
+        (name, category, price, stock, image, product_id),
+        commit=True
+    )
+    return jsonify({"message": "Updated"})
+
+@app.route("/products/<int:product_id>", methods=["DELETE"])
+@token_required
+@role_required('retailer', 'admin')
+def delete_product(current_user, product_id):
+    prod = db_query("SELECT * FROM products WHERE id = ?", (product_id,), one=True)
+    
+    if not prod:
+        return jsonify({"error": "Not found"}), 404
+        
+    if current_user["role"] == "retailer" and prod["retailer_id"] != current_user["id"]: 
+        return jsonify({"error": "Not yours"}), 403
+    
+    db_query("DELETE FROM products WHERE id = ?", (product_id,), commit=True)
+    return jsonify({"message": "Deleted"})
+
+
+# ----------------- ORDER ENDPOINTS -----------------
+@app.route("/orders", methods=["GET"])
+@token_required
+def get_orders(current_user):
+    if current_user['role'] == 'user':
+        orders = db_query("SELECT * FROM orders WHERE user_id = ? ORDER BY id DESC", (current_user['id'],))
+    else:
+        orders = db_query("SELECT * FROM orders ORDER BY id DESC")
+        
+    for o in orders:
+        try:
+            o['cart'] = json.loads(o['cart_json'])
+        except Exception:
+            o['cart'] = []
+            
+    return jsonify(orders)
 
 @app.route("/checkout", methods=["POST"])
-def checkout():
-    try:
-        data = request.get_json()
-        cart = data.get("cart", [])
-        total = data.get("total", 0)
-        email = data.get("email")
+@token_required
+def perform_checkout(current_user):
+    data = request.get_json()
+    cart = data.get("cart", [])
+    total = data.get("total", 0)
+    email = data.get("email", current_user["username"])
 
-        if not email or not cart:
-            return jsonify({"error": "Missing email or cart"}), 400
+    if not cart:
+        return jsonify({"error": "Empty cart"}), 400
 
-        # Save order
-        order = {
-            "cart": cart,
-            "total": total,
-            "email": email,
-            "timestamp": datetime.utcnow()
-        }
+    for item in cart:
+        if 'id' in item:
+            db_query(
+                "UPDATE products SET stock = stock - ? WHERE id = ?",
+                (int(item.get('quantity', 1)), int(item['id'])),
+                commit=True
+            )
 
-        orders_col.insert_one(order)
-
-        # Send email
-        send_order_email(email, cart, total)
-
-        return jsonify({"message": "✅ Order placed and email sent!"})
+    # Gamification increments: 1 XP per Rupee + 150 Checkout bonus
+    xp_gained = int(total) + 150
+    points_gained = 15
     
-    except Exception as e:
-        print("Checkout error:", e)
-        return jsonify({"error": "❌ Failed to place order"}), 500
+    # Process badges
+    badges = json.loads(current_user["badges"])
+    unlocked_new_badge = False
+    
+    if "first_purchase" not in badges:
+        badges.append("first_purchase")
+        unlocked_new_badge = True
+        xp_gained += 200
+        
+    if total > 1000 and "high_roller" not in badges:
+        badges.append("high_roller")
+        unlocked_new_badge = True
+        xp_gained += 300
+
+    cart_json = json.dumps(cart)
+    order_id = db_query(
+        "INSERT INTO orders (user_id, email, cart_json, total, status) VALUES (?, ?, ?, ?, ?)",
+        (current_user["id"], email, cart_json, total, "paid"),
+        commit=True
+    )
+    
+    db_query(
+        "UPDATE users SET xp = xp + ?, points = points + ?, badges = ? WHERE id = ?",
+        (xp_gained, points_gained, json.dumps(badges), current_user["id"]),
+        commit=True
+    )
+    
+    if email:
+        send_order_email(email, cart, total)
+        
+    return jsonify({
+        "message": "Order placed!",
+        "order_id": order_id,
+        "xp_gained": xp_gained,
+        "points_gained": points_gained,
+        "unlocked_new_badge": unlocked_new_badge,
+        "badges": badges
+    })
+
+@app.route("/create-checkout-session", methods=["POST"])
+@token_required
+def create_checkout_session(current_user):
+    return jsonify({"clientSecret": "pi_mock", "redirect_url": "/checkout-success"})
+
+
+# ----------------- GAMIFICATION ENDPOINTS -----------------
+@app.route("/user/spin", methods=["POST"])
+@token_required
+def user_spin(current_user):
+    cost = 30
+    if current_user["points"] < cost:
+        if current_user["xp"] < 300: # Help new users
+            cost = 0
+        else:
+            return jsonify({"error": "Insufficient points! Spin costs 30 points."}), 400
+            
+    import random
+    rewards = [
+        {"type": "discount", "value": 5, "label": "5% Discount", "code": "SPIN5"},
+        {"type": "discount", "value": 10, "label": "10% Discount", "code": "SPIN10"},
+        {"type": "discount", "value": 15, "label": "15% Discount", "code": "SPIN15"},
+        {"type": "xp", "value": 100, "label": "100 XP Bonus", "code": ""},
+        {"type": "xp", "value": 250, "label": "250 XP Bonus", "code": ""},
+        {"type": "points", "value": 50, "label": "50 Points Refill", "code": ""}
+    ]
+    
+    reward = random.choice(rewards)
+    xp_change = 0
+    points_change = -cost
+    
+    if reward["type"] == "xp":
+        xp_change = reward["value"]
+    elif reward["type"] == "points":
+        points_change += reward["value"]
+        
+    # Check if they get Coupon King badge
+    badges = json.loads(current_user["badges"])
+    unlocked_badge = False
+    if reward["type"] == "discount" and "coupon_king" not in badges:
+        badges.append("coupon_king")
+        unlocked_badge = True
+        xp_change += 200
+
+    db_query(
+        "UPDATE users SET xp = xp + ?, points = points + ?, badges = ? WHERE id = ?",
+        (xp_change, points_change, json.dumps(badges), current_user["id"]),
+        commit=True
+    )
+    
+    updated = db_query("SELECT xp, points, badges FROM users WHERE id = ?", (current_user["id"],), one=True)
+    
+    return jsonify({
+        "reward": reward,
+        "xp": updated["xp"],
+        "points": updated["points"],
+        "badges": json.loads(updated["badges"]),
+        "unlocked_badge": unlocked_badge
+    })
+
+@app.route("/user/claim-badge", methods=["POST"])
+@token_required
+def claim_badge(current_user):
+    badge_name = request.json.get("badge")
+    badges = json.loads(current_user["badges"])
+    
+    if badge_name not in badges:
+        badges.append(badge_name)
+        db_query(
+            "UPDATE users SET badges = ?, xp = xp + 150 WHERE id = ?",
+            (json.dumps(badges), current_user["id"]),
+            commit=True
+        )
+        
+    updated = db_query("SELECT xp, points, badges FROM users WHERE id = ?", (current_user["id"],), one=True)
+    return jsonify({
+        "message": f"Badge {badge_name} claimed", 
+        "badges": json.loads(updated["badges"]),
+        "xp": updated["xp"]
+    })
+
+@app.route("/user/daily-checkin", methods=["POST"])
+@token_required
+def daily_checkin(current_user):
+    today = datetime.date.today().isoformat()
+    last_active = current_user.get("last_active")
+    
+    streak = current_user.get("streak", 1)
+    if last_active:
+        try:
+            last_active_date = datetime.date.fromisoformat(last_active)
+            time_diff = datetime.date.today() - last_active_date
+            if time_diff.days == 1:
+                streak += 1
+            elif time_diff.days > 1:
+                streak = 1
+            else:
+                # Already checked in today
+                return jsonify({"error": "Already checked in today!"}), 400
+        except Exception:
+            streak = 1
+    else:
+        streak = 1
+        
+    xp_bonus = min(streak, 7) * 50
+    points_bonus = 25
+    
+    badges = json.loads(current_user["badges"])
+    unlocked_badge = False
+    if streak >= 3 and "streak_hero" not in badges:
+        badges.append("streak_hero")
+        unlocked_badge = True
+        xp_bonus += 200
+        
+    db_query(
+        "UPDATE users SET xp = xp + ?, points = points + ?, streak = ?, last_active = ?, badges = ? WHERE id = ?",
+        (xp_bonus, points_bonus, streak, today, json.dumps(badges), current_user["id"]),
+        commit=True
+    )
+    
+    updated = db_query("SELECT xp, points, badges, streak, last_active FROM users WHERE id = ?", (current_user["id"],), one=True)
+    return jsonify({
+        "message": "Daily check-in successful!",
+        "xp_gained": xp_bonus,
+        "points_gained": points_bonus,
+        "streak": updated["streak"],
+        "unlocked_badge": unlocked_badge,
+        "xp": updated["xp"],
+        "points": updated["points"],
+        "badges": json.loads(updated["badges"])
+    })
+
+@app.route("/recommend", methods=["GET"])
+def get_recommendations():
+    # Return random 4 products as recommendations
+    products = db_query("SELECT * FROM products ORDER BY RANDOM() LIMIT 4")
+    return jsonify(products)
+
+@app.route("/apply_discount", methods=["POST"])
+def apply_discount():
+    data = request.json or {}
+    total = float(data.get("total", 0))
+    discount_code = data.get("code", "")
+    
+    discount_percent = 0
+    if discount_code == "SPIN5":
+        discount_percent = 5
+    elif discount_code == "SPIN10":
+        discount_percent = 10
+    elif discount_code == "SPIN15":
+        discount_percent = 15
+        
+    discount_amount = total * (discount_percent / 100.0)
+    final_total = total - discount_amount
+    
+    return jsonify({
+        "original": total,
+        "discount": discount_amount,
+        "final": final_total,
+        "applied": discount_percent > 0
+    })
+
+
+# ----------------- ADMIN ENDPOINTS -----------------
+@app.route("/admin/users", methods=["GET"])
+@token_required
+@role_required('admin')
+def get_all_users(current_user):
+    users = db_query("SELECT id, username, role, xp, points, badges FROM users")
+    for u in users:
+        try:
+            u['badges'] = json.loads(u['badges'])
+        except Exception:
+            u['badges'] = []
+    return jsonify(users)
+
+@app.route("/admin/users/<int:user_id>/role", methods=["PUT"])
+@token_required
+@role_required('admin')
+def update_user_role(current_user, user_id):
+    new_role = request.json.get("role")
+    db_query("UPDATE users SET role = ? WHERE id = ?", (new_role, user_id), commit=True)
+    return jsonify({"message": "Updated"})
+
+
+if __name__ == "__main__":
+    init_db()
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port, debug=True)

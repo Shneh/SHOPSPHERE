@@ -1,0 +1,13 @@
+{
+  "name": "shopsphere",
+  "version": "2.0.0",
+  "description": "ShopSphere — Full-Stack E-Commerce Platform",
+  "scripts": {
+    "backend": "python3 backend/app.py",
+    "frontend": "npm --prefix frontend run dev",
+    "dev": "npm run backend & npm run frontend"
+  },
+  "keywords": ["ecommerce", "shopping", "react", "flask", "sqlite"],
+  "author": "ShopSphere",
+  "license": "MIT"
+}
