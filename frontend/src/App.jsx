@@ -9,6 +9,7 @@ import UserDashboard from './pages/UserDashboard';
 import RetailerDashboard from './pages/RetailerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import CartDrawer from './components/CartDrawer';
+import CategoryPage from './pages/CategoryPage';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -159,6 +160,7 @@ function App() {
           <Route path="/" element={<Home onAddToCart={handleAddToCart} />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/category/:categoryName" element={<CategoryPage onAddToCart={handleAddToCart} />} />
           
           <Route path="/dashboard/user" element={
             <ProtectedRoute allowedRoles={['user', 'admin']}>

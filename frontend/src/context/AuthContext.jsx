@@ -5,7 +5,18 @@ import axios from 'axios';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  // Initialize user state from localStorage cache for instant loading
+  const [user, setUserState] = useState(() => {
+    const cachedUser = localStorage.getItem('user');
+    if (cachedUser) {
+      try {
+        return JSON.parse(cachedUser);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
 
   // Configure axios base
@@ -19,24 +30,38 @@ export const AuthProvider = ({ children }) => {
         if (decoded.exp * 1000 < Date.now()) {
           logout();
         } else {
-          // fetch user details or just use token decode
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          axios.get('/me').then(res => {
-            setUser(res.data);
-          }).catch(() => {
-            logout();
-          });
+          // Asynchronously verify session in background, but keep user cached in the meantime
+          axios.get('/me')
+            .then(res => {
+              setUser(res.data);
+            })
+            .catch(() => {
+              logout();
+            });
         }
       } catch (e) {
         logout();
       }
+    } else {
+      setUser(null);
     }
     setLoading(false);
   }, []);
 
+  const setUser = (userData) => {
+    setUserState(userData);
+    if (userData) {
+      localStorage.setItem('user', JSON.stringify(userData));
+    } else {
+      localStorage.removeItem('user');
+    }
+  };
+
   const login = async (username, password) => {
     const res = await axios.post('/login', { username, password });
     localStorage.setItem('token', res.data.token);
+    
     axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
     setUser(res.data.user);
     return res.data;
@@ -49,8 +74,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     delete axios.defaults.headers.common['Authorization'];
-    setUser(null);
+    setUserState(null);
   };
 
   return (
