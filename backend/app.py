@@ -120,6 +120,12 @@ def init_db():
     except sqlite3.OperationalError:
         cursor.execute("ALTER TABLE users ADD COLUMN last_active TEXT")
         
+    # Check for mobile
+    try:
+        cursor.execute("SELECT mobile FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE users ADD COLUMN mobile TEXT")
+        
     conn.commit()
     conn.close()
     
@@ -224,6 +230,54 @@ def role_required(*allowed_roles):
     return decorator
 
 
+# Store OTPs in memory: { mobile: {"otp": otp, "expiry": datetime, "verified": bool} }
+otp_store = {}
+
+@app.route('/auth/send-otp', methods=['POST'])
+def send_otp():
+    data = request.get_json() or {}
+    mobile = data.get("mobile")
+    if not mobile or len(mobile) < 10:
+        return jsonify({"error": "Invalid mobile number. Must be at least 10 digits."}), 400
+        
+    import random
+    otp = str(random.randint(100000, 999999))
+    expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+    otp_store[mobile] = {"otp": otp, "expiry": expiry, "verified": False}
+    
+    print("=======================================")
+    print(f"[SMS SANDBOX MOCK] Sent OTP {otp} to {mobile}")
+    print("=======================================")
+    
+    return jsonify({
+        "message": "OTP sent successfully!",
+        "demo_otp": otp  # Sandbox developer convenience to auto-simulate SMS code delivery
+    })
+
+@app.route('/auth/verify-otp', methods=['POST'])
+def verify_otp():
+    data = request.get_json() or {}
+    mobile = data.get("mobile")
+    otp = data.get("otp")
+    
+    if not mobile or not otp:
+        return jsonify({"error": "Missing mobile number or OTP"}), 400
+        
+    record = otp_store.get(mobile)
+    if not record:
+        return jsonify({"error": "OTP not requested or expired"}), 400
+        
+    if datetime.datetime.utcnow() > record["expiry"]:
+        del otp_store[mobile]
+        return jsonify({"error": "OTP has expired. Please request a new one."}), 400
+        
+    if record["otp"] != otp:
+        return jsonify({"error": "Invalid OTP code"}), 400
+        
+    record["verified"] = True
+    return jsonify({"message": "Mobile number verified successfully!"})
+
+
 # ----------------- AUTH ENDPOINTS -----------------
 @app.route('/register', methods=['POST'])
 def register():
@@ -231,9 +285,15 @@ def register():
     username = data.get("username")
     password = data.get("password")
     role = data.get("role", "user")
+    mobile = data.get("mobile")
     
-    if not username or not password:
-        return jsonify({"error": "Missing username or password"}), 400
+    if not username or not password or not mobile:
+        return jsonify({"error": "Missing username, password, or mobile number"}), 400
+
+    # Enforce OTP verification
+    record = otp_store.get(mobile)
+    if not record or not record.get("verified"):
+        return jsonify({"error": "Mobile number has not been verified! Verify OTP first."}), 400
 
     existing = db_query("SELECT id FROM users WHERE username = ?", (username,), one=True)
     if existing:
@@ -247,10 +307,15 @@ def register():
     initial_badges = json.dumps(["welcome"])
     
     user_id = db_query(
-        "INSERT INTO users (username, password, role, xp, points, badges, streak) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (username, hashed_pw, role, initial_xp, initial_points, initial_badges, 1),
+        "INSERT INTO users (username, password, role, xp, points, badges, streak, mobile) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (username, hashed_pw, role, initial_xp, initial_points, initial_badges, 1, mobile),
         commit=True
     )
+    
+    # Cleanup OTP store
+    if mobile in otp_store:
+        del otp_store[mobile]
+        
     return jsonify({"message": "✅ Registered successfully", "user_id": user_id}), 201
 
 @app.route('/login', methods=['POST'])
