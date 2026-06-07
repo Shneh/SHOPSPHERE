@@ -10,18 +10,37 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 
-try:
-    from twilio.rest import Client as TwilioClient
-except ImportError:
-    TwilioClient = None
+import requests
+from cryptography.x509 import load_pem_x509_certificate
+from cryptography.hazmat.backends import default_backend
+
+def verify_firebase_token(id_token, project_id):
+    certs_url = 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com'
+    response = requests.get(certs_url, timeout=5)
+    public_keys = response.json()
+
+    header = jwt.get_unverified_header(id_token)
+    kid = header.get('kid')
+
+    if not kid or kid not in public_keys:
+        raise ValueError("Invalid token header kid. Public key not found.")
+
+    cert_pem = public_keys[kid].encode('utf-8')
+    cert = load_pem_x509_certificate(cert_pem, default_backend())
+    public_key = cert.public_key()
+
+    decoded_token = jwt.decode(
+        id_token,
+        key=public_key,
+        algorithms=['RS256'],
+        audience=project_id,
+        issuer=f"https://securetoken.google.com/{project_id}"
+    )
+    return decoded_token
 
 app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_super_secret_key_change_in_prod')
-
-TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
-TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
-TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE = os.path.join(BASE_DIR, 'shopsphere.db')
@@ -239,104 +258,37 @@ def role_required(*allowed_roles):
     return decorator
 
 
-# Store OTPs in memory: { mobile: {"otp": otp, "expiry": datetime, "verified": bool} }
-otp_store = {}
-
-@app.route('/auth/send-otp', methods=['POST'])
-def send_otp():
-    data = request.get_json() or {}
-    mobile = data.get("mobile")
-    if not mobile or len(mobile) < 10:
-        return jsonify({"error": "Invalid mobile number. Must be at least 10 digits."}), 400
-        
-    import random
-    otp = str(random.randint(100000, 999999))
-    expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
-    otp_store[mobile] = {"otp": otp, "expiry": expiry, "verified": False}
-    
-    # Try sending via Twilio if configured
-    is_real = False
-    twilio_error = None
-    if TwilioClient and TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER:
-        try:
-            formatted_mobile = mobile
-            if not formatted_mobile.startswith('+'):
-                if len(formatted_mobile) == 10:
-                    formatted_mobile = f"+91{formatted_mobile}"
-                else:
-                    formatted_mobile = f"+{formatted_mobile}"
-            
-            client = TwilioClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-            message = client.messages.create(
-                body=f"Your ShopSphere verification code is: {otp}",
-                from_=TWILIO_PHONE_NUMBER,
-                to=formatted_mobile
-            )
-            print(f"✅ Real SMS sent to {formatted_mobile} via Twilio SID: {message.sid}")
-            is_real = True
-        except Exception as e:
-            twilio_error = str(e)
-            print(f"❌ Twilio sending failed, falling back to mock sandbox: {e}")
-            
-    if is_real:
-        return jsonify({
-            "message": "OTP sent successfully via SMS!",
-            "real_time": True
-        })
-    else:
-        print("=======================================")
-        print(f"[SMS SANDBOX MOCK] Sent OTP {otp} to {mobile}")
-        print("=======================================")
-        response_data = {
-            "message": "OTP sent successfully! (Sandbox Mode)",
-            "demo_otp": otp,
-            "real_time": False
-        }
-        if twilio_error:
-            response_data["twilio_error"] = twilio_error
-        return jsonify(response_data)
-
-
-@app.route('/auth/verify-otp', methods=['POST'])
-def verify_otp():
-    data = request.get_json() or {}
-    mobile = data.get("mobile")
-    otp = data.get("otp")
-    
-    if not mobile or not otp:
-        return jsonify({"error": "Missing mobile number or OTP"}), 400
-        
-    record = otp_store.get(mobile)
-    if not record:
-        return jsonify({"error": "OTP not requested or expired"}), 400
-        
-    if datetime.datetime.utcnow() > record["expiry"]:
-        del otp_store[mobile]
-        return jsonify({"error": "OTP has expired. Please request a new one."}), 400
-        
-    if record["otp"] != otp:
-        return jsonify({"error": "Invalid OTP code"}), 400
-        
-    record["verified"] = True
-    return jsonify({"message": "Mobile number verified successfully!"})
-
-
 # ----------------- AUTH ENDPOINTS -----------------
 @app.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
+    data = request.get_json() or {}
     username = data.get("username")
     password = data.get("password")
     role = data.get("role", "user")
     mobile = data.get("mobile")
+    firebase_token = data.get("firebase_token")
     
-    if not username or not password or not mobile:
-        return jsonify({"error": "Missing username, password, or mobile number"}), 400
+    if not username or not password or not mobile or not firebase_token:
+        return jsonify({"error": "Missing username, password, mobile number, or Firebase verification token"}), 400
 
-    # Enforce OTP verification
-    record = otp_store.get(mobile)
-    if not record or not record.get("verified"):
-        return jsonify({"error": "Mobile number has not been verified! Verify OTP first."}), 400
+    # 1. Format mobile number to match Google's verified format (e.g. +919876543210)
+    formatted_mobile = mobile
+    if not formatted_mobile.startswith('+'):
+        if len(formatted_mobile) == 10:
+            formatted_mobile = f"+91{formatted_mobile}"
+        else:
+            formatted_mobile = f"+{formatted_mobile}"
+
+    # 2. Verify Google Firebase ID Token and check if phone number matches
+    try:
+        decoded_token = verify_firebase_token(firebase_token, "shopsphere-auth")
+        verified_phone = decoded_token.get("phone_number")
+        
+        if not verified_phone or verified_phone != formatted_mobile:
+            return jsonify({"error": "Verified phone number does not match registered mobile number!"}), 400
+    except Exception as e:
+        print("Firebase verification token failed:", e)
+        return jsonify({"error": f"Invalid verification token: {str(e)}"}), 400
 
     existing = db_query("SELECT id FROM users WHERE username = ?", (username,), one=True)
     if existing:
@@ -354,10 +306,6 @@ def register():
         (username, hashed_pw, role, initial_xp, initial_points, initial_badges, 1, mobile),
         commit=True
     )
-    
-    # Cleanup OTP store
-    if mobile in otp_store:
-        del otp_store[mobile]
         
     return jsonify({"message": "✅ Registered successfully", "user_id": user_id}), 201
 

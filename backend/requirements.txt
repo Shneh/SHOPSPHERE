@@ -2,4 +2,5 @@ flask
 flask-cors
 PyJWT
 gunicorn
-twilio
+requests
+cryptography

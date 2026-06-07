@@ -2,6 +2,8 @@ import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { auth } from '../firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
 export default function Register() {
   const [username, setUsername] = useState('');
@@ -11,13 +13,13 @@ export default function Register() {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [firebaseToken, setFirebaseToken] = useState('');
   
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState('');
   const [otpSuccess, setOtpSuccess] = useState('');
-  const [demoOtp, setDemoOtp] = useState('');
   
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -27,16 +29,44 @@ export default function Register() {
     setOtpSuccess('');
     setOtpLoading(true);
     try {
-      const res = await axios.post('/auth/send-otp', { mobile });
-      setOtpSent(true);
-      setDemoOtp(res.data.demo_otp || '');
-      setOtpSuccess(res.data.real_time ? 'OTP Code sent to your mobile phone! 📱' : 'OTP Code sent! Enter it below to verify.');
-      // Sandbox convenience: only show a mock SMS alert if demo_otp is present!
-      if (res.data.demo_otp) {
-        alert(`💬 [MOCK SMS SANDBOX]\nTo: ${mobile}\nMessage: Your ShopSphere OTP verification code is: ${res.data.demo_otp}`);
+      // Initialize invisible recaptcha verifier
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          callback: (response) => {
+            // reCAPTCHA solved
+          },
+          'expired-callback': () => {
+            // reCAPTCHA expired
+          }
+        });
       }
+      
+      const appVerifier = window.recaptchaVerifier;
+
+      // Format number to E.164 (must have + prefix)
+      let formattedMobile = mobile;
+      if (!formattedMobile.startsWith('+')) {
+        if (formattedMobile.length === 10) {
+          formattedMobile = `+91${formattedMobile}`;
+        } else {
+          formattedMobile = `+${formattedMobile}`;
+        }
+      }
+
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedMobile, appVerifier);
+      window.confirmationResult = confirmationResult;
+      setOtpSent(true);
+      setOtpSuccess('OTP verification code sent to your phone! 📱');
     } catch (err) {
-      setOtpError(err.response?.data?.error || 'Failed to send OTP.');
+      console.error(err);
+      setOtpError(err.message || 'Failed to send OTP. Ensure your phone number is correct.');
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) {}
+        window.recaptchaVerifier = null;
+      }
     } finally {
       setOtpLoading(false);
     }
@@ -47,12 +77,19 @@ export default function Register() {
     setOtpSuccess('');
     setOtpLoading(true);
     try {
-      await axios.post('/auth/verify-otp', { mobile, otp });
+      if (!window.confirmationResult) {
+        throw new Error('No OTP session found. Please request a new code.');
+      }
+      const result = await window.confirmationResult.confirm(otp);
+      const user = result.user;
+      const idToken = await user.getIdToken();
+      setFirebaseToken(idToken);
       setIsVerified(true);
       setOtpSent(false);
       setOtpSuccess('Mobile number verified successfully! 🟢');
     } catch (err) {
-      setOtpError(err.response?.data?.error || 'Invalid OTP code. Please try again.');
+      console.error(err);
+      setOtpError(err.message || 'Invalid OTP code. Please try again.');
     } finally {
       setOtpLoading(false);
     }
@@ -60,7 +97,7 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isVerified) {
+    if (!isVerified || !firebaseToken) {
       setError('Please verify your mobile number first!');
       return;
     }
@@ -68,8 +105,13 @@ export default function Register() {
     setError('');
     setLoading(true);
     try {
-      // Use the registration API via AuthContext, but we'll call axios directly since register takes (username, password, role, mobile)
-      await axios.post('/register', { username, password, role, mobile });
+      await axios.post('/register', { 
+        username, 
+        password, 
+        role, 
+        mobile,
+        firebase_token: firebaseToken
+      });
       alert('🎉 Registration successful! Welcome to ShopSphere. Please login.');
       navigate('/login');
     } catch (err) {
@@ -186,13 +228,8 @@ export default function Register() {
             {otpSuccess && <p style={{ color: 'var(--accent-color)', fontSize: '0.8rem', marginTop: '0.4rem', fontWeight: '600' }}>{otpSuccess}</p>}
             {otpError && <p style={{ color: 'var(--error-color)', fontSize: '0.8rem', marginTop: '0.4rem' }}>⚠️ {otpError}</p>}
             
-            {demoOtp && !isVerified && (
-              <div className="glass-card" style={{ padding: '0.5rem 0.75rem', marginTop: '0.5rem', background: 'rgba(13,148,136,0.04)', borderColor: 'rgba(13,148,136,0.1)' }}>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  🔑 Demo SMS OTP Code: <strong style={{ color: 'var(--primary-color)' }}>{demoOtp}</strong> (copy to verify)
-                </p>
-              </div>
-            )}
+            {/* Invisible reCAPTCHA container for Firebase */}
+            <div id="recaptcha-container"></div>
           </div>
 
           <button 
