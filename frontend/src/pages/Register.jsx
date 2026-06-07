@@ -29,10 +29,12 @@ export default function Register() {
     try {
       const res = await axios.post('/auth/send-otp', { mobile });
       setOtpSent(true);
-      setDemoOtp(res.data.demo_otp);
-      setOtpSuccess('OTP Code sent! Enter it below to verify.');
-      // Sandbox convenience: show a mock SMS alert for the developer/user to copy the code!
-      alert(`💬 [MOCK SMS SANDBOX]\nTo: ${mobile}\nMessage: Your ShopSphere OTP verification code is: ${res.data.demo_otp}`);
+      setDemoOtp(res.data.demo_otp || '');
+      setOtpSuccess(res.data.real_time ? 'OTP Code sent to your mobile phone! 📱' : 'OTP Code sent! Enter it below to verify.');
+      // Sandbox convenience: only show a mock SMS alert if demo_otp is present!
+      if (res.data.demo_otp) {
+        alert(`💬 [MOCK SMS SANDBOX]\nTo: ${mobile}\nMessage: Your ShopSphere OTP verification code is: ${res.data.demo_otp}`);
+      }
     } catch (err) {
       setOtpError(err.response?.data?.error || 'Failed to send OTP.');
     } finally {

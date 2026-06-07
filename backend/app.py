@@ -10,9 +10,18 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 
+try:
+    from twilio.rest import Client as TwilioClient
+except ImportError:
+    TwilioClient = None
+
 app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_super_secret_key_change_in_prod')
+
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE = os.path.join(BASE_DIR, 'shopsphere.db')
@@ -245,14 +254,48 @@ def send_otp():
     expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
     otp_store[mobile] = {"otp": otp, "expiry": expiry, "verified": False}
     
-    print("=======================================")
-    print(f"[SMS SANDBOX MOCK] Sent OTP {otp} to {mobile}")
-    print("=======================================")
-    
-    return jsonify({
-        "message": "OTP sent successfully!",
-        "demo_otp": otp  # Sandbox developer convenience to auto-simulate SMS code delivery
-    })
+    # Try sending via Twilio if configured
+    is_real = False
+    twilio_error = None
+    if TwilioClient and TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER:
+        try:
+            formatted_mobile = mobile
+            if not formatted_mobile.startswith('+'):
+                if len(formatted_mobile) == 10:
+                    formatted_mobile = f"+91{formatted_mobile}"
+                else:
+                    formatted_mobile = f"+{formatted_mobile}"
+            
+            client = TwilioClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+            message = client.messages.create(
+                body=f"Your ShopSphere verification code is: {otp}",
+                from_=TWILIO_PHONE_NUMBER,
+                to=formatted_mobile
+            )
+            print(f"✅ Real SMS sent to {formatted_mobile} via Twilio SID: {message.sid}")
+            is_real = True
+        except Exception as e:
+            twilio_error = str(e)
+            print(f"❌ Twilio sending failed, falling back to mock sandbox: {e}")
+            
+    if is_real:
+        return jsonify({
+            "message": "OTP sent successfully via SMS!",
+            "real_time": True
+        })
+    else:
+        print("=======================================")
+        print(f"[SMS SANDBOX MOCK] Sent OTP {otp} to {mobile}")
+        print("=======================================")
+        response_data = {
+            "message": "OTP sent successfully! (Sandbox Mode)",
+            "demo_otp": otp,
+            "real_time": False
+        }
+        if twilio_error:
+            response_data["twilio_error"] = twilio_error
+        return jsonify(response_data)
+
 
 @app.route('/auth/verify-otp', methods=['POST'])
 def verify_otp():
