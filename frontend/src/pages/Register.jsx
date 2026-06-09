@@ -40,6 +40,10 @@ export default function Register() {
         try {
           const templateParams = {
             user_email: email,
+            to_email: email,
+            email: email,
+            to: email,
+            to_name: username || 'User',
             order_details: `🔑 Your ShopSphere registration verification code is: ${res.data.demo_otp}`,
             order_total: "Email OTP Verification Session"
           };
