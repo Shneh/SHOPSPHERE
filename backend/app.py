@@ -10,33 +10,6 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 
-import requests
-from cryptography.x509 import load_pem_x509_certificate
-from cryptography.hazmat.backends import default_backend
-
-def verify_firebase_token(id_token, project_id):
-    certs_url = 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com'
-    response = requests.get(certs_url, timeout=5)
-    public_keys = response.json()
-
-    header = jwt.get_unverified_header(id_token)
-    kid = header.get('kid')
-
-    if not kid or kid not in public_keys:
-        raise ValueError("Invalid token header kid. Public key not found.")
-
-    cert_pem = public_keys[kid].encode('utf-8')
-    cert = load_pem_x509_certificate(cert_pem, default_backend())
-    public_key = cert.public_key()
-
-    decoded_token = jwt.decode(
-        id_token,
-        key=public_key,
-        algorithms=['RS256'],
-        audience=project_id,
-        issuer=f"https://securetoken.google.com/{project_id}"
-    )
-    return decoded_token
 
 app = Flask(__name__)
 CORS(app)
@@ -154,6 +127,12 @@ def init_db():
     except sqlite3.OperationalError:
         cursor.execute("ALTER TABLE users ADD COLUMN mobile TEXT")
         
+    # Check for email
+    try:
+        cursor.execute("SELECT email FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE users ADD COLUMN email TEXT")
+        
     conn.commit()
     conn.close()
     
@@ -259,6 +238,85 @@ def role_required(*allowed_roles):
 
 
 # ----------------- AUTH ENDPOINTS -----------------
+# Store OTPs in memory: { email: {"otp": otp, "expiry": datetime, "verified": bool} }
+email_otp_store = {}
+
+@app.route('/auth/send-email-otp', methods=['POST'])
+def send_email_otp():
+    data = request.get_json() or {}
+    email = data.get("email")
+    if not email or "@" not in email:
+        return jsonify({"error": "Invalid email address."}), 400
+        
+    import random
+    otp = str(random.randint(100000, 999999))
+    expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
+    email_otp_store[email] = {"otp": otp, "expiry": expiry, "verified": False}
+    
+    is_real = False
+    email_error = None
+    
+    if EMAIL_USER and EMAIL_PASS and EMAIL_PASS != "shknoetvksoejfpw":
+        try:
+            body = f"🔒 Your ShopSphere verification code is: {otp}\n\nThis code is valid for 10 minutes."
+            msg = MIMEText(body)
+            msg['Subject'] = "🔒 ShopSphere Verification Code"
+            msg['From'] = EMAIL_USER
+            msg['To'] = email
+            
+            with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT, timeout=5) as server:
+                server.starttls()
+                server.login(EMAIL_USER, EMAIL_PASS)
+                server.send_message(msg)
+            is_real = True
+            print(f"✅ Real OTP email sent to {email}")
+        except Exception as e:
+            email_error = str(e)
+            print(f"❌ Failed to send OTP email via SMTP, falling back to mock sandbox: {e}")
+            
+    if is_real:
+        return jsonify({
+            "message": "OTP sent successfully to your email!",
+            "real_time": True
+        })
+    else:
+        print("=======================================")
+        print(f"[EMAIL SANDBOX MOCK] Sent OTP {otp} to {email}")
+        print("=======================================")
+        response_data = {
+            "message": "OTP sent successfully! (Sandbox Mode)",
+            "demo_otp": otp,
+            "real_time": False
+        }
+        if email_error:
+            response_data["smtp_error"] = email_error
+        return jsonify(response_data)
+
+
+@app.route('/auth/verify-email-otp', methods=['POST'])
+def verify_email_otp():
+    data = request.get_json() or {}
+    email = data.get("email")
+    otp = data.get("otp")
+    
+    if not email or not otp:
+        return jsonify({"error": "Missing email or OTP"}), 400
+        
+    record = email_otp_store.get(email)
+    if not record:
+        return jsonify({"error": "OTP not requested or expired"}), 400
+        
+    if datetime.datetime.utcnow() > record["expiry"]:
+        del email_otp_store[email]
+        return jsonify({"error": "OTP has expired. Please request a new one."}), 400
+        
+    if record["otp"] != otp:
+        return jsonify({"error": "Invalid OTP code"}), 400
+        
+    record["verified"] = True
+    return jsonify({"message": "Email verified successfully!"})
+
+
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json() or {}
@@ -266,29 +324,15 @@ def register():
     password = data.get("password")
     role = data.get("role", "user")
     mobile = data.get("mobile")
-    firebase_token = data.get("firebase_token")
+    email = data.get("email")
     
-    if not username or not password or not mobile or not firebase_token:
-        return jsonify({"error": "Missing username, password, mobile number, or Firebase verification token"}), 400
+    if not username or not password or not mobile or not email:
+        return jsonify({"error": "Missing username, password, mobile number, or email address"}), 400
 
-    # 1. Format mobile number to match Google's verified format (e.g. +919876543210)
-    formatted_mobile = mobile
-    if not formatted_mobile.startswith('+'):
-        if len(formatted_mobile) == 10:
-            formatted_mobile = f"+91{formatted_mobile}"
-        else:
-            formatted_mobile = f"+{formatted_mobile}"
-
-    # 2. Verify Google Firebase ID Token and check if phone number matches
-    try:
-        decoded_token = verify_firebase_token(firebase_token, "shopsphere-auth")
-        verified_phone = decoded_token.get("phone_number")
-        
-        if not verified_phone or verified_phone != formatted_mobile:
-            return jsonify({"error": "Verified phone number does not match registered mobile number!"}), 400
-    except Exception as e:
-        print("Firebase verification token failed:", e)
-        return jsonify({"error": f"Invalid verification token: {str(e)}"}), 400
+    # Enforce Email verification
+    record = email_otp_store.get(email)
+    if not record or not record.get("verified"):
+        return jsonify({"error": "Email address has not been verified! Verify OTP first."}), 400
 
     existing = db_query("SELECT id FROM users WHERE username = ?", (username,), one=True)
     if existing:
@@ -302,10 +346,14 @@ def register():
     initial_badges = json.dumps(["welcome"])
     
     user_id = db_query(
-        "INSERT INTO users (username, password, role, xp, points, badges, streak, mobile) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (username, hashed_pw, role, initial_xp, initial_points, initial_badges, 1, mobile),
+        "INSERT INTO users (username, password, role, xp, points, badges, streak, mobile, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (username, hashed_pw, role, initial_xp, initial_points, initial_badges, 1, mobile, email),
         commit=True
     )
+    
+    # Cleanup OTP store
+    if email in email_otp_store:
+        del email_otp_store[email]
         
     return jsonify({"message": "✅ Registered successfully", "user_id": user_id}), 201
 
