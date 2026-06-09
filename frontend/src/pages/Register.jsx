@@ -31,9 +31,37 @@ export default function Register() {
       const res = await axios.post('/auth/send-email-otp', { email });
       setOtpSent(true);
       setDemoOtp(res.data.demo_otp || '');
-      setOtpSuccess(res.data.real_time ? 'OTP verification code sent to your email! 📱' : 'OTP Code sent! Enter it below to verify.');
-      if (res.data.demo_otp) {
-        alert(`💬 [EMAIL SANDBOX MOCK]\nTo: ${email}\nMessage: Your ShopSphere OTP verification code is: ${res.data.demo_otp}`);
+      
+      let sentReal = res.data.real_time;
+      let emailError = null;
+
+      // If backend failed to send it directly via SMTP (e.g. Render port blocked), send it via EmailJS Client!
+      if (!sentReal && res.data.demo_otp && window.emailjs) {
+        try {
+          const templateParams = {
+            user_email: email,
+            order_details: `🔑 Your ShopSphere registration verification code is: ${res.data.demo_otp}`,
+            order_total: "Email OTP Verification Session"
+          };
+          await window.emailjs.send('service_9ez56f8', 'template_isb8uv7', templateParams);
+          sentReal = true;
+        } catch (e) {
+          console.error('EmailJS sending failed:', e);
+          emailError = e.text || e.message || String(e);
+        }
+      }
+
+      if (sentReal) {
+        setOtpSuccess('OTP verification code sent to your email address! Please check your inbox. 📧');
+        setDemoOtp(''); // Clear demoOtp so we hide the sandbox key from the UI
+      } else {
+        setOtpSuccess('OTP Code generated! Enter it below to verify.');
+        if (res.data.demo_otp) {
+          alert(`💬 [EMAIL SANDBOX MOCK]\nTo: ${email}\nMessage: Your ShopSphere OTP verification code is: ${res.data.demo_otp}`);
+        }
+        if (emailError) {
+          setOtpError(`Failed to send real email: ${emailError}. Falling back to sandbox.`);
+        }
       }
     } catch (err) {
       console.error(err);
