@@ -256,7 +256,7 @@ def send_email_otp():
     is_real = False
     email_error = None
     
-    if EMAIL_USER and EMAIL_PASS and EMAIL_PASS != "shknoetvksoejfpw":
+    if EMAIL_USER and EMAIL_PASS:
         try:
             body = f"🔒 Your ShopSphere verification code is: {otp}\n\nThis code is valid for 10 minutes."
             msg = MIMEText(body)
