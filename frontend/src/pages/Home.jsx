@@ -36,13 +36,15 @@ export default function Home({ onAddToCart }) {
       // Silently refresh in background
       fetchProducts();
     } else {
-      fetchProducts();
+      // No cache: ping first to wake Render, then fetch
+      axios.get('/ping').catch(() => {});
+      setTimeout(() => fetchProducts(), 400);
     }
     fetchRecommendations();
   }, [user]);
 
   const CACHE_KEY = 'ss_products_cache';
-  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
   // Stale-while-revalidate: load from cache instantly
   const loadFromCache = () => {

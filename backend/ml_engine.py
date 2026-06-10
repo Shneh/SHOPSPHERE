@@ -37,6 +37,15 @@ if GEMINI_AVAILABLE and GEMINI_API_KEY:
         GEMINI_API_KEY = None
 
 
+# ── Module-level TF-IDF cache ──────────────────────────────────────────────
+# Built once per server process; never re-fitted unless products change.
+_tfidf_cache = {
+    "vectorizer": None,
+    "matrix": None,
+    "products": None,  # reference snapshot to detect staleness
+}
+
+
 def build_profile(product):
     """
     Builds a text profile for a product combining name, category, sizes, and description.
@@ -48,9 +57,31 @@ def build_profile(product):
     return f"{name} {category} {description} {sizes}".lower()
 
 
+def _build_tfidf_index(products):
+    """Build and cache the TF-IDF matrix for the given product list."""
+    global _tfidf_cache
+    if not SKLEARN_AVAILABLE or not products:
+        return
+    try:
+        corpus = [build_profile(p) for p in products]
+        vectorizer = TfidfVectorizer(stop_words='english')
+        matrix = vectorizer.fit_transform(corpus)
+        _tfidf_cache["vectorizer"] = vectorizer
+        _tfidf_cache["matrix"] = matrix
+        _tfidf_cache["products"] = list(products)
+        logger.info(f"✅ TF-IDF index built for {len(products)} products.")
+    except Exception as e:
+        logger.error(f"Error building TF-IDF index: {e}")
+
+
+def warm_up(products):
+    """Pre-warm the TF-IDF index. Call once at startup."""
+    if _tfidf_cache["vectorizer"] is None:
+        _build_tfidf_index(products)
+
 def get_semantic_search_results(query, products, top_n=20):
     """
-    Uses TF-IDF and Cosine Similarity to rank products based on the query.
+    Uses cached TF-IDF index for instant semantic search.
     Falls back to simple keyword matching if sklearn is unavailable.
     """
     if not products:
@@ -63,31 +94,30 @@ def get_semantic_search_results(query, products, top_n=20):
     
     if SKLEARN_AVAILABLE:
         try:
-            # Build corpus of product profiles
-            corpus = [build_profile(p) for p in products]
-            
-            # Initialize TF-IDF Vectorizer
-            vectorizer = TfidfVectorizer(stop_words='english')
-            tfidf_matrix = vectorizer.fit_transform(corpus)
-            
-            # Vectorize query
+            # Use cached index if available and for same product set, else rebuild
+            if (_tfidf_cache["vectorizer"] is None or
+                    _tfidf_cache["products"] is None or
+                    len(_tfidf_cache["products"]) != len(products)):
+                _build_tfidf_index(products)
+
+            vectorizer = _tfidf_cache["vectorizer"]
+            tfidf_matrix = _tfidf_cache["matrix"]
+
+            if vectorizer is None:
+                raise ValueError("Vectorizer unavailable")
+
+            # Vectorize query against cached matrix
             query_vector = vectorizer.transform([query_str])
-            
-            # Compute similarities
             similarities = cosine_similarity(query_vector, tfidf_matrix).flatten()
             
-            # Zip products with their scores
             scored_products = []
             for idx, p in enumerate(products):
-                # Add score to a copy of the product dict
                 p_copy = dict(p)
                 p_copy["relevance_score"] = float(similarities[idx])
                 scored_products.append(p_copy)
                 
-            # Sort by score descending
             scored_products.sort(key=lambda x: x["relevance_score"], reverse=True)
             
-            # Return only those with relevance > 0 if there are matches, otherwise fall back to all
             positive_matches = [p for p in scored_products if p["relevance_score"] > 0]
             if positive_matches:
                 return positive_matches[:top_n]
@@ -95,7 +125,6 @@ def get_semantic_search_results(query, products, top_n=20):
             
         except Exception as e:
             logger.error(f"Error in TF-IDF semantic search: {e}")
-            # Fall back to simple keyword check
             
     # Fallback keyword ranking
     scored_products = []

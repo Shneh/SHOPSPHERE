@@ -180,6 +180,18 @@ def init_db():
     seed_reviews_if_empty()
     seed_admin_account()
 
+    # Pre-warm TF-IDF index in background thread so first search is instant
+    import threading
+    def _warm_ml():
+        try:
+            products = db_query("SELECT * FROM products")
+            if products:
+                from ml_engine import warm_up
+                warm_up(products)
+        except Exception as e:
+            print(f"⚠️ ML warm-up failed (non-critical): {e}")
+    threading.Thread(target=_warm_ml, daemon=True).start()
+
 def seed_admin_account():
     """Ensure exactly one admin account exists with fixed credentials."""
     ADMIN_USERNAME = "admin9627"
@@ -505,10 +517,9 @@ def get_me(current_user):
     })
 
 
-# ----------------- PRODUCT ENDPOINTS -----------------
 @app.route("/products", methods=["GET"])
 def get_products():
-    search = request.args.get("search", "")
+    search = request.args.get("search", "").strip()
     category = request.args.get("category", "")
     
     query = "SELECT * FROM products WHERE 1=1"
@@ -520,7 +531,8 @@ def get_products():
         
     products = db_query(query, tuple(params))
     
-    if search and search.strip():
+    # Only invoke ML engine when there's an actual search query
+    if search:
         try:
             from ml_engine import get_semantic_search_results
             products = get_semantic_search_results(search, products)
@@ -978,7 +990,18 @@ init_db()
 # ----------------- PING / KEEP-ALIVE -----------------
 @app.route("/ping", methods=["GET"])
 def ping():
-    """Lightweight keep-alive endpoint. Returns instantly without DB access."""
+    """Lightweight keep-alive endpoint. Also triggers ML warm-up if not ready."""
+    import threading
+    def _warm_if_needed():
+        try:
+            from ml_engine import warm_up, _tfidf_cache
+            if _tfidf_cache["vectorizer"] is None:
+                products = db_query("SELECT * FROM products")
+                if products:
+                    warm_up(products)
+        except Exception:
+            pass
+    threading.Thread(target=_warm_if_needed, daemon=True).start()
     return jsonify({"status": "ok", "message": "ShopSphere backend is awake 🟢"})
 
 if __name__ == "__main__":
