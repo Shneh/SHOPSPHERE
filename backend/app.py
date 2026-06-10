@@ -734,10 +734,10 @@ def apply_discount():
 @token_required
 @role_required('admin')
 def get_all_users(current_user):
-    users = db_query("SELECT id, username, role, xp, points, badges FROM users")
+    users = db_query("SELECT id, username, role, xp, points, badges, email, mobile, streak, last_active FROM users")
     for u in users:
         try:
-            u['badges'] = json.loads(u['badges'])
+            u['badges'] = json.loads(u['badges']) if u['badges'] else []
         except Exception:
             u['badges'] = []
     return jsonify(users)
@@ -749,6 +749,33 @@ def update_user_role(current_user, user_id):
     new_role = request.json.get("role")
     db_query("UPDATE users SET role = ? WHERE id = ?", (new_role, user_id), commit=True)
     return jsonify({"message": "Updated"})
+
+@app.route("/admin/users/<int:user_id>", methods=["DELETE"])
+@token_required
+@role_required('admin')
+def delete_user(current_user, user_id):
+    if current_user["id"] == user_id:
+        return jsonify({"error": "You cannot delete your own admin account!"}), 400
+    db_query("DELETE FROM users WHERE id = ?", (user_id,), commit=True)
+    return jsonify({"message": "User deleted successfully"})
+
+@app.route("/admin/orders/<int:order_id>", methods=["PUT"])
+@token_required
+@role_required('admin')
+def update_order_status(current_user, order_id):
+    data = request.json or {}
+    status = data.get("status")
+    if not status:
+        return jsonify({"error": "Missing status"}), 400
+    db_query("UPDATE orders SET status = ? WHERE id = ?", (status, order_id), commit=True)
+    return jsonify({"message": "Order status updated successfully"})
+
+@app.route("/admin/orders/<int:order_id>", methods=["DELETE"])
+@token_required
+@role_required('admin')
+def delete_order(current_user, order_id):
+    db_query("DELETE FROM orders WHERE id = ?", (order_id,), commit=True)
+    return jsonify({"message": "Order deleted successfully"})
 
 
 # Initialize the database immediately when app.py is loaded (works for both local and Gunicorn)
