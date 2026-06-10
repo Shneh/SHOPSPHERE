@@ -29,6 +29,15 @@ export default function AdminDashboard() {
   const [newProductStock, setNewProductStock] = useState('');
   const [newProductImage, setNewProductImage] = useState('');
 
+  // Add User form state
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [newUserUsername, setNewUserUsername] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState('user');
+  const [newUserMobile, setNewUserMobile] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [addUserLoading, setAddUserLoading] = useState(false);
+
   // Low stock input state for quick refills
   const [refillQuantities, setRefillQuantities] = useState({});
 
@@ -78,6 +87,37 @@ export default function AdminDashboard() {
       fetchInitialData();
     } catch (err) {
       alert(err.response?.data?.error || '❌ Failed to delete user account.');
+    }
+  };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    if (!newUserUsername || !newUserPassword || !newUserMobile || !newUserEmail) {
+      alert('⚠️ Please fill out all required fields!');
+      return;
+    }
+    setAddUserLoading(true);
+    try {
+      await axios.post('/admin/users', {
+        username: newUserUsername,
+        password: newUserPassword,
+        role: newUserRole,
+        mobile: newUserMobile,
+        email: newUserEmail
+      });
+      alert('✅ User created successfully!');
+      // Reset form
+      setNewUserUsername('');
+      setNewUserPassword('');
+      setNewUserRole('user');
+      setNewUserMobile('');
+      setNewUserEmail('');
+      setShowAddUserForm(false);
+      fetchInitialData();
+    } catch (err) {
+      alert(err.response?.data?.error || '❌ Failed to create user account.');
+    } finally {
+      setAddUserLoading(false);
     }
   };
 
@@ -381,9 +421,53 @@ export default function AdminDashboard() {
 
       {/* USERS MANAGEMENT TAB */}
       {activeTab === 'users' && (
-        <div className="glass-card animate-fade">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--card-border)', paddingBottom: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <h3 style={{ margin: 0 }}>Registered Account Records</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+          
+          {/* Add User Collapsible Panel */}
+          <div className="glass-card animate-fade">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowAddUserForm(!showAddUserForm)}>
+              <h3 style={{ margin: 0 }}>👥 Create New User Profile (Shopper/Seller/Admin)</h3>
+              <span style={{ fontSize: '1.2rem' }}>{showAddUserForm ? '▲' : '▼'}</span>
+            </div>
+
+            {showAddUserForm && (
+              <form onSubmit={handleAddUser} style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', borderTop: '1px solid var(--card-border)', paddingTop: '1.25rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Username *</label>
+                  <input type="text" placeholder="e.g. shopper99" value={newUserUsername} onChange={(e) => setNewUserUsername(e.target.value)} required style={{ marginBottom: 0 }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Password *</label>
+                  <input type="password" placeholder="Password" value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} required style={{ marginBottom: 0 }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Email Address *</label>
+                  <input type="email" placeholder="email@example.com" value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} required style={{ marginBottom: 0 }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Mobile Number *</label>
+                  <input type="tel" placeholder="e.g. +91 9999999999" value={newUserMobile} onChange={(e) => setNewUserMobile(e.target.value)} required style={{ marginBottom: 0 }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Account Role *</label>
+                  <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)} style={{ marginBottom: 0 }}>
+                    <option value="user">🛒 Shopper (Customer)</option>
+                    <option value="retailer">🏭 Seller (Retailer)</option>
+                    <option value="admin">🔧 Admin (Platform Administrator)</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gridColumn: '1 / -1' }}>
+                  <button type="submit" disabled={addUserLoading} className="btn-primary glow-hover" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px' }}>
+                    {addUserLoading ? 'Creating Profile...' : 'Create Account'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+
+          <div className="glass-card animate-fade">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--card-border)', paddingBottom: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <h3 style={{ margin: 0 }}>Registered Account Records</h3>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <input
                 type="text"
@@ -481,6 +565,7 @@ export default function AdminDashboard() {
             )}
           </div>
         </div>
+      </div>
       )}
 
       {/* PRODUCTS TAB */}

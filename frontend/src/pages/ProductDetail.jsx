@@ -12,6 +12,7 @@ export default function ProductDetail({ onAddToCart }) {
   
   const [selectedSize, setSelectedSize] = useState('unisized');
   const [quantity, setQuantity] = useState(1);
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   
   // Review form state
   const [newRating, setNewRating] = useState(5);
@@ -23,6 +24,7 @@ export default function ProductDetail({ onAddToCart }) {
 
   useEffect(() => {
     fetchProductDetails();
+    setActiveMediaIndex(0);
   }, [productId]);
 
   const fetchProductDetails = async () => {
@@ -135,6 +137,31 @@ export default function ProductDetail({ onAddToCart }) {
     ? product.sizes.split(',').map(s => s.trim()) 
     : [];
 
+  const getMediaType = (url) => {
+    if (!url) return 'image';
+    const cleanUrl = url.split('?')[0].split('#')[0].toLowerCase();
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv'];
+    if (videoExtensions.some(ext => cleanUrl.endsWith(ext))) {
+      return 'video';
+    }
+    if (url.includes('/video/upload/')) {
+      return 'video';
+    }
+    return 'image';
+  };
+
+  let gallery = [];
+  if (product.media_gallery) {
+    try {
+      gallery = typeof product.media_gallery === 'string' ? JSON.parse(product.media_gallery) : product.media_gallery;
+    } catch (err) {
+      console.error('Failed to parse media gallery:', err);
+    }
+  }
+  if (!Array.isArray(gallery) || gallery.length === 0) {
+    gallery = product.image ? [product.image] : [];
+  }
+
   // Dynamic AI recommendation generation mock content
   const getAiRecommendationPitch = (p) => {
     const score = 94 + (p.id % 6);
@@ -162,15 +189,70 @@ export default function ProductDetail({ onAddToCart }) {
       {/* Main product pane */}
       <div style={{ display: 'flex', gap: '2.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
         
-        {/* Product image block */}
-        <div style={{ flex: '1 1 400px' }}>
-          <div className="glass-card" style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', background: '#ffffff', borderRadius: '16px' }}>
-            <img 
-              src={product.image} 
-              alt={product.name} 
-              style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', borderRadius: '12px' }} 
-            />
+        {/* Product image block (Gallery format) */}
+        <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="glass-card" style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', background: '#ffffff', borderRadius: '16px', position: 'relative', overflow: 'hidden' }}>
+            {gallery.length > 0 ? (
+              getMediaType(gallery[activeMediaIndex]) === 'video' ? (
+                <video 
+                  src={gallery[activeMediaIndex]} 
+                  controls 
+                  autoPlay
+                  muted
+                  playsInline
+                  style={{ width: '100%', maxHeight: '420px', borderRadius: '12px', objectFit: 'contain' }}
+                />
+              ) : (
+                <img 
+                  src={gallery[activeMediaIndex]} 
+                  alt={product.name} 
+                  style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', borderRadius: '12px' }} 
+                />
+              )
+            ) : (
+              <div style={{ color: 'var(--text-secondary)' }}>📷 No Media Available</div>
+            )}
           </div>
+
+          {/* Thumbnail list for gallery */}
+          {gallery.length > 1 && (
+            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', width: '100%' }}>
+              {gallery.map((mediaUrl, idx) => {
+                const isVideo = getMediaType(mediaUrl) === 'video';
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => setActiveMediaIndex(idx)}
+                    style={{
+                      width: '70px',
+                      height: '70px',
+                      borderRadius: '8px',
+                      border: activeMediaIndex === idx ? '2px solid var(--primary-color)' : '1px solid var(--card-border)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      position: 'relative',
+                      background: '#fff',
+                      flexShrink: 0,
+                      opacity: activeMediaIndex === idx ? 1 : 0.7,
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {isVideo ? (
+                      <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
+                        <video src={mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
+                        <span style={{ position: 'absolute', fontSize: '1.2rem', color: '#fff', zIndex: 2 }}>🎥</span>
+                      </div>
+                    ) : (
+                      <img src={mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Product specs & purchase block */}

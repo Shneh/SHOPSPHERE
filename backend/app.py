@@ -74,7 +74,8 @@ def init_db():
             price REAL NOT NULL,
             stock INTEGER NOT NULL,
             image TEXT,
-            retailer_id INTEGER NOT NULL
+            retailer_id INTEGER NOT NULL,
+            media_gallery TEXT DEFAULT '[]'
         )
     ''')
     
@@ -164,6 +165,13 @@ def init_db():
         cursor.execute("SELECT description FROM products LIMIT 1")
     except sqlite3.OperationalError:
         cursor.execute("ALTER TABLE products ADD COLUMN description TEXT")
+        conn.commit()
+
+    # Check for media_gallery in products
+    try:
+        cursor.execute("SELECT media_gallery FROM products LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE products ADD COLUMN media_gallery TEXT DEFAULT '[]'")
         conn.commit()
 
     # Check for shipping_address in orders
@@ -567,7 +575,7 @@ def get_product_verdict(product_id):
 @token_required
 @role_required('retailer', 'admin')
 def add_product(current_user):
-    data = request.json
+    data = request.json or {}
     name = data.get("name")
     price = float(data.get("price", 0))
     stock = int(data.get("stock", 0))
@@ -578,13 +586,17 @@ def add_product(current_user):
     cost_price = float(data.get("cost_price", price * 1.25))
     sizes = data.get("sizes", "unisized")
     description = data.get("description", "Premium product curated by ShopSphere.")
+    media_gallery = data.get("media_gallery", "[]")
+    
+    if isinstance(media_gallery, list):
+        media_gallery = json.dumps(media_gallery)
     
     # Gain 50 XP for listing a product!
     db_query("UPDATE users SET xp = xp + 50 WHERE id = ?", (current_user["id"],), commit=True)
     
     prod_id = db_query(
-        "INSERT INTO products (name, category, price, stock, image, retailer_id, cost_price, sizes, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (name, category, price, stock, image, retailer_id, cost_price, sizes, description),
+        "INSERT INTO products (name, category, price, stock, image, retailer_id, cost_price, sizes, description, media_gallery) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (name, category, price, stock, image, retailer_id, cost_price, sizes, description, media_gallery),
         commit=True
     )
     return jsonify({"message": "Product added", "product": {"id": prod_id}}), 201
@@ -593,7 +605,7 @@ def add_product(current_user):
 @token_required
 @role_required('retailer', 'admin')
 def update_product(current_user, product_id):
-    data = request.json
+    data = request.json or {}
     prod = db_query("SELECT * FROM products WHERE id = ?", (product_id,), one=True)
     
     if not prod:
@@ -611,9 +623,16 @@ def update_product(current_user, product_id):
     sizes = data.get("sizes", prod["sizes"] if prod["sizes"] is not None else 'unisized')
     description = data.get("description", prod["description"] if prod["description"] is not None else 'Premium product curated by ShopSphere.')
     
+    media_gallery = data.get("media_gallery")
+    if media_gallery is not None:
+        if isinstance(media_gallery, list):
+            media_gallery = json.dumps(media_gallery)
+    else:
+        media_gallery = prod["media_gallery"] if prod["media_gallery"] is not None else "[]"
+    
     db_query(
-        "UPDATE products SET name = ?, category = ?, price = ?, stock = ?, image = ?, cost_price = ?, sizes = ?, description = ? WHERE id = ?",
-        (name, category, price, stock, image, cost_price, sizes, description, product_id),
+        "UPDATE products SET name = ?, category = ?, price = ?, stock = ?, image = ?, cost_price = ?, sizes = ?, description = ?, media_gallery = ? WHERE id = ?",
+        (name, category, price, stock, image, cost_price, sizes, description, media_gallery, product_id),
         commit=True
     )
     return jsonify({"message": "Updated"})
@@ -947,6 +966,39 @@ def get_all_users(current_user):
         except Exception:
             u['badges'] = []
     return jsonify(users)
+
+@app.route("/admin/users", methods=["POST"])
+@token_required
+@role_required('admin')
+def admin_create_user(current_user):
+    data = request.json or {}
+    username = data.get("username")
+    password = data.get("password")
+    role = data.get("role", "user")
+    mobile = data.get("mobile", "")
+    email = data.get("email", "")
+    
+    if not username or not password or not role or not mobile or not email:
+        return jsonify({"error": "Missing username, password, role, mobile number, or email address"}), 400
+        
+    if role not in ['user', 'retailer', 'admin']:
+        return jsonify({"error": "Invalid role specified"}), 400
+        
+    existing = db_query("SELECT id FROM users WHERE username = ?", (username,), one=True)
+    if existing:
+        return jsonify({"error": "Username already exists"}), 400
+
+    hashed_pw = generate_password_hash(password)
+    initial_xp = 100
+    initial_points = 50
+    initial_badges = json.dumps(["welcome"])
+    
+    user_id = db_query(
+        "INSERT INTO users (username, password, role, xp, points, badges, streak, mobile, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (username, hashed_pw, role, initial_xp, initial_points, initial_badges, 1, mobile, email),
+        commit=True
+    )
+    return jsonify({"message": "User created successfully", "id": user_id}), 201
 
 @app.route("/admin/users/<int:user_id>/role", methods=["PUT"])
 @token_required
