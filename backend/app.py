@@ -936,6 +936,12 @@ def delete_order(current_user, order_id):
 # Initialize the database immediately when app.py is loaded (works for both local and Gunicorn)
 init_db()
 
+# ----------------- PING / KEEP-ALIVE -----------------
+@app.route("/ping", methods=["GET"])
+def ping():
+    """Lightweight keep-alive endpoint. Returns instantly without DB access."""
+    return jsonify({"status": "ok", "message": "ShopSphere backend is awake 🟢"})
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=True)

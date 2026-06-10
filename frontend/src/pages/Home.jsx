@@ -27,19 +27,49 @@ export default function Home({ onAddToCart }) {
   const categories = ['All', 'Electronics', 'Clothing', 'Grocery', 'Home & Furniture', 'Books & Education'];
 
   useEffect(() => {
-    fetchProducts();
+    // Serve cached products instantly, then revalidate in background
+    const cached = loadFromCache();
+    if (cached && cached.length > 0) {
+      setProducts(cached);
+      setLoading(false);
+      // Silently refresh in background
+      fetchProducts();
+    } else {
+      fetchProducts();
+    }
     fetchRecommendations();
   }, [user]);
 
+  const CACHE_KEY = 'ss_products_cache';
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  // Stale-while-revalidate: load from cache instantly
+  const loadFromCache = () => {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const { data, ts } = JSON.parse(raw);
+      if (Date.now() - ts < CACHE_TTL) return data;
+    } catch (e) {}
+    return null;
+  };
+
+  const saveToCache = (data) => {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+    } catch (e) {}
+  };
+
   const fetchProducts = async (query = '', cat = 'All') => {
-    setLoading(true);
+    // Only show spinner if there is no cached data already displayed
+    if (products.length === 0) setLoading(true);
     try {
       let url = `/products?search=${encodeURIComponent(query)}`;
-      if (cat && cat !== 'All') {
-        url += `&category=${encodeURIComponent(cat)}`;
-      }
+      if (cat && cat !== 'All') url += `&category=${encodeURIComponent(cat)}`;
       const res = await axios.get(url);
       setProducts(res.data);
+      // Only cache the default (no query / no category filter) result
+      if (!query && (!cat || cat === 'All')) saveToCache(res.data);
     } catch (err) {
       console.error('Failed to load products:', err);
     } finally {

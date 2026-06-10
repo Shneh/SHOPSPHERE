@@ -49,6 +49,14 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // Keep-alive pinger — prevents Render free tier cold starts
+  useEffect(() => {
+    const wake = () => axios.get('/ping').catch(() => {});
+    wake(); // ping immediately on page load
+    const interval = setInterval(wake, 14 * 60 * 1000); // every 14 minutes
+    return () => clearInterval(interval);
+  }, []);
+
   const setUser = (userData) => {
     setUserState(userData);
     if (userData) {
