@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { Search, SlidersHorizontal, TrendingUp, ShoppingCart, ArrowRight, Package } from 'lucide-react';
 
 export default function Home({ onAddToCart }) {
   const { user } = useContext(AuthContext);
@@ -168,165 +169,146 @@ export default function Home({ onAddToCart }) {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '3.5rem' }}>
       
-      {/* Hero Section */}
-      <section className="glass-card" style={{ 
-        textAlign: 'center', 
-        padding: '4rem 2rem', 
-        background: 'linear-gradient(135deg, rgba(13, 148, 136, 0.08) 0%, rgba(236, 72, 153, 0.03) 50%, rgba(255, 255, 255, 0.8) 100%)',
-        border: '1px solid var(--card-border)',
-        marginTop: '1rem'
+      {/* ── Hero ────────────────────────────────────────── */}
+      <section style={{
+        background: 'linear-gradient(160deg, #ffffff 0%, #f5f5f7 100%)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-2xl)',
+        padding: 'clamp(2.5rem, 6vw, 4.5rem) clamp(1.5rem, 5vw, 4rem)',
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: 'var(--shadow-sm)'
       }}>
-        <h1 style={{ fontSize: '3.5rem', lineHeight: '1.15', marginBottom: '1rem', fontWeight: 800 }}>
-          Discover the Future of <span className="text-gradient">Shopping</span>
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '1.25rem', maxWidth: '700px', margin: '0 auto 2.5rem', lineHeight: '1.6' }}>
-          Welcome to ShopSphere — where innovation meets convenience. Start exploring our premium collection and level up your shopper rewards!
-        </p>
-        
-        <form onSubmit={handleSearch} style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', position: 'relative' }} ref={searchContainerRef}>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <input 
-                type="text" 
-                id="home-search-input"
-                placeholder="Search products, brands, categories..."
-                value={search}
-                onChange={handleSearchChange}
-                onFocus={() => search.trim().length >= 2 && setShowDropdown(true)}
-                onKeyDown={(e) => e.key === 'Escape' && setShowDropdown(false)}
-                style={{ marginBottom: 0, padding: '0.9rem 1.25rem', borderRadius: '30px', width: '100%' }}
-                autoComplete="off"
-              />
+        {/* Soft background orb */}
+        <div style={{
+          position: 'absolute', top: '-60px', right: '-60px',
+          width: '340px', height: '340px',
+          background: 'radial-gradient(circle, rgba(79,70,229,0.06) 0%, transparent 70%)',
+          borderRadius: '50%', pointerEvents: 'none'
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-80px', left: '20%',
+          width: '280px', height: '280px',
+          background: 'radial-gradient(circle, rgba(124,58,237,0.04) 0%, transparent 70%)',
+          borderRadius: '50%', pointerEvents: 'none'
+        }} />
 
-              {/* Live Search Dropdown */}
-              {showDropdown && (
-                <div style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 8px)',
-                  left: 0,
-                  right: 0,
-                  background: 'rgba(255,255,255,0.98)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(13,148,136,0.2)',
-                  borderRadius: '16px',
-                  boxShadow: '0 20px 60px rgba(0,0,0,0.12)',
-                  zIndex: 1000,
-                  overflow: 'hidden',
-                  animation: 'fadeIn 0.15s ease'
-                }}>
-                  {liveLoading ? (
-                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      ⏳ Searching...
-                    </div>
-                  ) : liveResults.length === 0 ? (
-                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      No results found for "{search}"
-                    </div>
-                  ) : (
-                    <>
-                      <div style={{ padding: '0.6rem 1rem 0.25rem', fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                        🔍 {liveResults.length} Result{liveResults.length !== 1 ? 's' : ''}
-                      </div>
-                      {liveResults.map((product, idx) => (
-                        <div
-                          key={product.id}
-                          onClick={() => handleSelectSuggestion(product)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.75rem',
-                            padding: '0.65rem 1rem',
-                            cursor: 'pointer',
-                            transition: 'background 0.15s',
-                            borderTop: idx === 0 ? 'none' : '1px solid rgba(0,0,0,0.04)'
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(13,148,136,0.05)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        >
-                          {product.image ? (
-                            <img
-                              src={product.image}
-                              alt={product.name}
-                              style={{ width: '44px', height: '44px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0 }}
-                            />
-                          ) : (
-                            <div style={{ width: '44px', height: '44px', background: 'rgba(13,148,136,0.08)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>📦</div>
-                          )}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontWeight: '600', fontSize: '0.9rem', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name}</p>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.1rem 0 0' }}>{product.category}</p>
-                          </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--primary-color)' }}>₹{product.price}</span>
-                            {product.cost_price && product.cost_price > product.price && (
-                              <p style={{ fontSize: '0.7rem', color: 'var(--accent-color)', margin: '0.1rem 0 0', fontWeight: '600' }}>
-                                {Math.round(((product.cost_price - product.price) / product.cost_price) * 100)}% OFF
-                              </p>
-                            )}
-                          </div>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: '760px', margin: '0 auto', textAlign: 'center' }}>
+          <p className="section-eyebrow">Powered by AI recommendations</p>
+          <h1 style={{ marginBottom: '1.1rem' }}>
+            The smarter way to <span className="text-gradient">shop</span>
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '540px', margin: '0 auto 2.5rem', lineHeight: '1.65' }}>
+            Discover millions of products with AI-powered search and personalised recommendations.
+          </p>
+
+          {/* Search */}
+          <form onSubmit={handleSearch} style={{ maxWidth: '560px', margin: '0 auto 1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.6rem', position: 'relative' }} ref={searchContainerRef}>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+                <input
+                  type="text"
+                  id="home-search-input"
+                  placeholder="Search products, brands…"
+                  value={search}
+                  onChange={handleSearchChange}
+                  onFocus={() => search.trim().length >= 2 && setShowDropdown(true)}
+                  onKeyDown={e => e.key === 'Escape' && setShowDropdown(false)}
+                  style={{ marginBottom: 0, paddingLeft: '2.6rem', paddingRight: '1rem', borderRadius: '12px', height: '48px', fontSize: '0.92rem', boxShadow: 'var(--shadow-sm)' }}
+                  autoComplete="off"
+                />
+
+                {/* Live Search Dropdown */}
+                {showDropdown && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
+                    background: '#ffffff', border: '1px solid var(--border)',
+                    borderRadius: '14px', boxShadow: 'var(--shadow-xl)',
+                    zIndex: 1000, overflow: 'hidden', animation: 'scaleIn 0.14s var(--ease-spring)'
+                  }}>
+                    {liveLoading ? (
+                      <div style={{ padding: '1rem 1.2rem', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Searching…</div>
+                    ) : liveResults.length === 0 ? (
+                      <div style={{ padding: '1rem 1.2rem', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No results for "{search}"</div>
+                    ) : (
+                      <>
+                        <div style={{ padding: '0.6rem 1.1rem 0.2rem', fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                          {liveResults.length} result{liveResults.length !== 1 ? 's' : ''}
                         </div>
-                      ))}
-                      <div
-                        onClick={() => { setShowDropdown(false); fetchProducts(search, activeCategory); }}
-                        style={{
-                          padding: '0.65rem 1rem',
-                          textAlign: 'center',
-                          fontSize: '0.8rem',
-                          color: 'var(--primary-color)',
-                          fontWeight: '700',
-                          cursor: 'pointer',
-                          borderTop: '1px solid rgba(13,148,136,0.1)',
-                          background: 'rgba(13,148,136,0.02)'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(13,148,136,0.08)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(13,148,136,0.02)'}
-                      >
-                        See all results for "{search}" →
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
+                        {liveResults.map((product, idx) => (
+                          <div key={product.id} onClick={() => handleSelectSuggestion(product)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 1rem', cursor: 'pointer', transition: 'background 0.12s', borderTop: idx === 0 ? 'none' : '1px solid var(--border-subtle)' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(79,70,229,0.04)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                          >
+                            {product.image
+                              ? <img src={product.image} alt={product.name} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0 }} />
+                              : <div style={{ width: '40px', height: '40px', background: 'var(--bg)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Package size={16} color="var(--text-tertiary)" /></div>
+                            }
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontWeight: '600', fontSize: '0.88rem', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name}</p>
+                              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0.1rem 0 0' }}>{product.category}</p>
+                            </div>
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <span style={{ fontWeight: '700', fontSize: '0.88rem' }}>₹{product.price}</span>
+                              {product.cost_price && product.cost_price > product.price && (
+                                <p style={{ fontSize: '0.68rem', color: 'var(--emerald)', margin: '0.1rem 0 0', fontWeight: '700' }}>
+                                  {Math.round(((product.cost_price - product.price) / product.cost_price) * 100)}% off
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        <div onClick={() => { setShowDropdown(false); fetchProducts(search, activeCategory); }}
+                          style={{ padding: '0.7rem 1rem', textAlign: 'center', fontSize: '0.82rem', color: 'var(--indigo)', fontWeight: '700', cursor: 'pointer', borderTop: '1px solid var(--border-subtle)', background: 'rgba(79,70,229,0.02)' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(79,70,229,0.06)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(79,70,229,0.02)'}
+                        >
+                          View all results for "{search}" <ArrowRight size={12} style={{ display: 'inline', verticalAlign: 'middle' }} />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              <button type="submit" className="btn-primary" style={{ height: '48px', padding: '0 1.5rem', borderRadius: '12px', flexShrink: 0, gap: '0.4rem' }}>
+                <Search size={15} /> Search
+              </button>
             </div>
-            <button type="submit" className="btn-primary" style={{ padding: '0.9rem 2.2rem', borderRadius: '30px', flexShrink: 0 }}>
-              🔍 Search
-            </button>
-          </div>
-          
-          {/* Top Selects for Sorting */}
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+          </form>
+
+          {/* Sort controls */}
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Sort By:</span>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ marginBottom: 0, padding: '0.4rem 1rem', width: '150px', borderRadius: '20px', backgroundColor: '#ffffff', border: '1px solid rgba(15,23,42,0.1)' }}>
+              <SlidersHorizontal size={13} color="var(--text-tertiary)" />
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ marginBottom: 0, padding: '0.35rem 0.85rem', width: 'auto', borderRadius: '8px', fontSize: '0.82rem', background: 'white', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
                 <option value="name">Name</option>
                 <option value="price">Price</option>
               </select>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Order:</span>
-              <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} style={{ marginBottom: 0, padding: '0.4rem 1rem', width: '150px', borderRadius: '20px', backgroundColor: '#ffffff', border: '1px solid rgba(15,23,42,0.1)' }}>
-                <option value="asc">Ascending</option>
-                <option value="desc">Descending</option>
+              <select value={sortOrder} onChange={e => setSortOrder(e.target.value)} style={{ marginBottom: 0, padding: '0.35rem 0.85rem', width: 'auto', borderRadius: '8px', fontSize: '0.82rem', background: 'white', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
+                <option value="asc">Low to High</option>
+                <option value="desc">High to Low</option>
               </select>
             </div>
           </div>
-        </form>
+        </div>
       </section>
 
-      {/* Products Showcase */}
+      {/* ── Products ─────────────────────────────────────── */}
       <section>
-        <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <h2>🛍 Explore Catalog</h2>
+        {/* Header row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <p className="section-eyebrow">Catalogue</p>
+            <h2 style={{ marginTop: 0 }}>Explore products</h2>
+          </div>
           {/* Category Filters */}
           <div className="category-filter-container" style={{ marginBottom: 0 }}>
-            {categories.map((cat) => (
-              <span 
-                key={cat} 
-                className={`category-tag ${activeCategory === cat ? 'active' : ''}`}
-                onClick={() => handleCategoryClick(cat)}
-              >
+            {categories.map(cat => (
+              <span key={cat} className={`category-tag ${activeCategory === cat ? 'active' : ''}`} onClick={() => handleCategoryClick(cat)}>
                 {cat}
               </span>
             ))}
@@ -334,97 +316,104 @@ export default function Home({ onAddToCart }) {
         </div>
 
         {loading ? (
-          // Skeletal Loading
+          // Shimmer skeletons
           <div className="product-grid">
-            {[1, 2, 3, 4].map(n => (
-              <div key={n} className="glass-card" style={{ padding: '1rem', height: '360px' }}>
-                <div style={{ width: '100%', height: '200px', background: 'rgba(0,0,0,0.03)', borderRadius: '8px', animation: 'fadeIn 1s infinite alternate' }}></div>
-                <div style={{ height: '20px', background: 'rgba(0,0,0,0.03)', borderRadius: '4px', marginTop: '1rem', width: '70%' }}></div>
-                <div style={{ height: '15px', background: 'rgba(0,0,0,0.03)', borderRadius: '4px', marginTop: '0.5rem', width: '40%' }}></div>
-                <div style={{ height: '40px', background: 'rgba(0,0,0,0.03)', borderRadius: '8px', marginTop: '1.5rem' }}></div>
+            {[1,2,3,4,5,6].map(n => (
+              <div key={n} style={{ borderRadius: 'var(--radius-xl)', overflow: 'hidden', background: 'var(--bg-alt)', border: '1px solid var(--border-subtle)' }}>
+                <div className="skeleton" style={{ aspectRatio: '1/1', width: '100%', borderRadius: 0 }} />
+                <div style={{ padding: '1.1rem 1.2rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <div className="skeleton" style={{ height: '14px', width: '70%' }} />
+                  <div className="skeleton" style={{ height: '12px', width: '40%' }} />
+                  <div className="skeleton" style={{ height: '38px', width: '100%', marginTop: '0.5rem', borderRadius: '10px' }} />
+                </div>
               </div>
             ))}
           </div>
         ) : (
           <div className="product-grid">
-            {sortedProducts.map(p => (
-              <div key={p.id} className="glass-card glow-hover" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
-                <div 
-                  className="product-image-container" 
-                  onClick={() => navigate(`/product/${p.id}`)}
-                  style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden', borderRadius: '10px', marginBottom: '1rem', height: '200px', background: '#f1f5f9' }}
-                >
-                  {p.image ? (
-                    <img src={p.image} alt={p.name} className="product-image" />
-                  ) : (
-                    <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                      📷 No Image Available
+            {sortedProducts.map(p => {
+              const discount = p.cost_price && p.cost_price > p.price
+                ? Math.round(((p.cost_price - p.price) / p.cost_price) * 100)
+                : 0;
+              return (
+                <div key={p.id} className="product-card" onClick={() => navigate(`/product/${p.id}`)}>
+                  <div className="product-img-wrap">
+                    {p.image
+                      ? <img src={p.image} alt={p.name} loading="lazy" />
+                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Package size={36} color="var(--text-tertiary)" /></div>
+                    }
+                    {/* Badges overlay */}
+                    <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      <span className="badge badge-neutral" style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)' }}>{p.category}</span>
+                      {discount > 0 && <span className="badge badge-accent" style={{ background: 'rgba(5,150,105,0.9)', color: 'white', border: 'none' }}>{discount}% off</span>}
                     </div>
-                  )}
-                  <span className="badge badge-primary" style={{ position: 'absolute', top: '10px', left: '10px' }}>
-                    {p.category}
-                  </span>
-                </div>
-                
-                <h3 
-                  onClick={() => navigate(`/product/${p.id}`)}
-                  style={{ fontSize: '1.2rem', margin: '0.5rem 0 0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
-                >
-                  {p.name}
-                </h3>
-                
-                <div className="flex justify-between items-center" style={{ marginTop: 'auto' }}>
-                  <p className="price-tag">₹{p.price}</p>
-                  <span style={{ fontSize: '0.8rem', color: p.stock > 0 ? 'var(--accent-color)' : 'var(--error-color)', fontWeight: '600' }}>
-                    {p.stock > 0 ? `In Stock: ${p.stock}` : 'Out of Stock'}
-                  </span>
-                </div>
+                    {/* Out of stock overlay */}
+                    {p.stock <= 0 && (
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontWeight: '700', fontSize: '0.82rem', color: 'var(--rose)', background: 'white', padding: '0.35rem 0.75rem', borderRadius: '8px', boxShadow: 'var(--shadow-sm)' }}>Out of Stock</span>
+                      </div>
+                    )}
+                  </div>
 
-                <button 
-                  className="btn-primary mt-4" 
-                  style={{ width: '100%' }} 
-                  disabled={p.stock <= 0}
-                  onClick={() => onAddToCart(p)}
-                >
-                  🛒 Add to Cart
-                </button>
-              </div>
-            ))}
-            
+                  <div className="product-card-body">
+                    <p className="product-name">{p.name}</p>
+                    <div className="product-price-row">
+                      <span className="product-price">₹{p.price}</span>
+                      {p.cost_price && p.cost_price > p.price && (
+                        <span className="product-price-original">₹{p.cost_price}</span>
+                      )}
+                    </div>
+                    <button
+                      className="btn-primary w-full"
+                      style={{ marginTop: '0.75rem', borderRadius: '10px', height: '40px', fontSize: '0.85rem', gap: '0.4rem' }}
+                      disabled={p.stock <= 0}
+                      onClick={e => { e.stopPropagation(); onAddToCart(p); }}
+                    >
+                      <ShoppingCart size={14} />
+                      Add to Cart
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
             {sortedProducts.length === 0 && (
-              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '4rem 0', color: 'var(--text-secondary)' }}>
-                <p style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔍</p>
-                <h3>No products found</h3>
-                <p>Try searching for other products or select different categories.</p>
+              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '5rem 0', color: 'var(--text-secondary)' }}>
+                <Package size={48} color="var(--text-tertiary)" style={{ margin: '0 auto 1rem' }} />
+                <h3 style={{ marginBottom: '0.5rem' }}>No products found</h3>
+                <p style={{ fontSize: '0.9rem' }}>Try different keywords or browse by category.</p>
               </div>
             )}
           </div>
         )}
       </section>
 
-      {/* Recommendations Slider */}
+      {/* ── Recommendations ─────────────────────────────── */}
       {recommendations.length > 0 && (
         <section>
-          <h2 style={{ marginBottom: '1.5rem' }}>✨ Recommended for You</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
+            <TrendingUp size={18} color="var(--indigo)" />
+            <div>
+              <p className="section-eyebrow" style={{ marginBottom: '0.1rem' }}>AI-Powered</p>
+              <h2 style={{ marginTop: 0 }}>Recommended for you</h2>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.25rem' }}>
             {recommendations.map(p => (
-              <div key={p.id} className="glass-card glow-hover" style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.5)' }}>
-                <div 
-                  className="product-image-container" 
-                  onClick={() => navigate(`/product/${p.id}`)}
-                  style={{ height: '150px', cursor: 'pointer', position: 'relative', overflow: 'hidden', borderRadius: '10px', marginBottom: '1rem', background: '#f1f5f9' }}
-                >
-                  <img src={p.image} alt={p.name} className="product-image" />
+              <div key={p.id} className="product-card" onClick={() => navigate(`/product/${p.id}`)} style={{ cursor: 'pointer' }}>
+                <div className="product-img-wrap" style={{ aspectRatio: '4/3' }}>
+                  {p.image
+                    ? <img src={p.image} alt={p.name} loading="lazy" />
+                    : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}><Package size={28} color="var(--text-tertiary)" /></div>
+                  }
                 </div>
-                <h4 
-                  onClick={() => navigate(`/product/${p.id}`)}
-                  style={{ fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '0.5rem', cursor: 'pointer' }}
-                >
-                  {p.name}
-                </h4>
-                <div className="flex justify-between items-center">
-                  <span className="price-tag" style={{ fontSize: '1.1rem' }}>₹{p.price}</span>
-                  <button className="btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => onAddToCart(p)}>
+                <div className="product-card-body" style={{ padding: '0.9rem 1rem 1rem' }}>
+                  <p className="product-name" style={{ fontSize: '0.85rem' }}>{p.name}</p>
+                  <div className="product-price-row">
+                    <span className="product-price" style={{ fontSize: '1rem' }}>₹{p.price}</span>
+                  </div>
+                  <button className="btn-secondary btn-sm w-full" style={{ marginTop: '0.6rem', borderRadius: '8px', fontSize: '0.8rem' }}
+                    onClick={e => { e.stopPropagation(); onAddToCart(p); }}>
                     + Add
                   </button>
                 </div>
