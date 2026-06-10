@@ -178,6 +178,43 @@ def init_db():
     
     seed_products_if_empty()
     seed_reviews_if_empty()
+    seed_admin_account()
+
+def seed_admin_account():
+    """Ensure exactly one admin account exists with fixed credentials."""
+    ADMIN_USERNAME = "admin9627"
+    ADMIN_PASSWORD = "shopsphereShneh@123"
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT id FROM users WHERE username = ?", (ADMIN_USERNAME,))
+        existing = cursor.fetchone()
+        hashed_pw = generate_password_hash(ADMIN_PASSWORD)
+        
+        if existing:
+            cursor.execute(
+                "UPDATE users SET password = ?, role = 'admin' WHERE username = ?",
+                (hashed_pw, ADMIN_USERNAME)
+            )
+        else:
+            cursor.execute(
+                "INSERT INTO users (username, password, role, xp, points, badges, streak) VALUES (?, ?, 'admin', 9999, 9999, '[]', 1)",
+                (ADMIN_USERNAME, hashed_pw)
+            )
+        
+        # Demote any rogue admin accounts
+        cursor.execute(
+            "UPDATE users SET role = 'user' WHERE role = 'admin' AND username != ?",
+            (ADMIN_USERNAME,)
+        )
+        conn.commit()
+        print(f"✅ Admin account '{ADMIN_USERNAME}' is configured.")
+    except Exception as e:
+        conn.rollback()
+        print(f"⚠️ Could not configure admin account: {e}")
+    finally:
+        conn.close()
 
 def seed_products_if_empty():
     count = db_query("SELECT COUNT(*) as cnt FROM products", one=True)
@@ -389,7 +426,9 @@ def register():
     role = data.get("role", "user")
     mobile = data.get("mobile")
     email = data.get("email")
-    
+    # Block admin role creation via public registration
+    if role == 'admin':
+        role = 'user'
     if not username or not password or not mobile or not email:
         return jsonify({"error": "Missing username, password, mobile number, or email address"}), 400
 
