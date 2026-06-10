@@ -89,6 +89,18 @@ def init_db():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL,
+            user_id INTEGER,
+            username TEXT NOT NULL,
+            rating INTEGER NOT NULL,
+            comment TEXT NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     
     # Dynamic schema upgrades for old sqlite tables
     # Check for xp
@@ -132,11 +144,40 @@ def init_db():
         cursor.execute("SELECT email FROM users LIMIT 1")
     except sqlite3.OperationalError:
         cursor.execute("ALTER TABLE users ADD COLUMN email TEXT")
+
+    # Check for cost_price in products
+    try:
+        cursor.execute("SELECT cost_price FROM products LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE products ADD COLUMN cost_price REAL")
+        conn.commit()
+        
+    # Check for sizes in products
+    try:
+        cursor.execute("SELECT sizes FROM products LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE products ADD COLUMN sizes TEXT DEFAULT 'unisized'")
+        conn.commit()
+
+    # Check for description in products
+    try:
+        cursor.execute("SELECT description FROM products LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE products ADD COLUMN description TEXT")
+        conn.commit()
+
+    # Check for shipping_address in orders
+    try:
+        cursor.execute("SELECT shipping_address FROM orders LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE orders ADD COLUMN shipping_address TEXT")
+        conn.commit()
         
     conn.commit()
     conn.close()
     
     seed_products_if_empty()
+    seed_reviews_if_empty()
 
 def seed_products_if_empty():
     count = db_query("SELECT COUNT(*) as cnt FROM products", one=True)
@@ -145,41 +186,64 @@ def seed_products_if_empty():
         
     products = [
         # Electronics
-        ("Cyberpunk Headphones", "Electronics", 2999.00, 15, "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80", 1),
-        ("Smart Watch Series 9", "Electronics", 4999.00, 20, "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80", 1),
-        ("Ultra Slim Laptop", "Electronics", 59999.00, 8, "https://images.unsplash.com/photo-1496181130204-755241524eab?w=500&q=80", 1),
-        ("Mechanical Keyboard", "Electronics", 1999.00, 30, "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&q=80", 1),
+        ("Cyberpunk Headphones", "Electronics", 2999.00, 15, "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80", 1, 3999.00, "unisized", "High-fidelity immersive audio experience with cybernetic designs, active noise cancellation, and 40-hour long-lasting battery life."),
+        ("Smart Watch Series 9", "Electronics", 4999.00, 20, "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80", 1, 5999.00, "unisized", "Next-gen wellness tracking watch. Monitors blood oxygen levels, heart rates, sleep analytics, and features an ultra-bright AMOLED touch display."),
+        ("Ultra Slim Laptop", "Electronics", 59999.00, 8, "https://images.unsplash.com/photo-1496181130204-755241524eab?w=500&q=80", 1, 69999.00, "unisized", "Power-packed lightweight laptop. Features 16GB RAM, 512GB NVMe SSD, and high-performance processing capability designed for modern creators."),
+        ("Mechanical Keyboard", "Electronics", 1999.00, 30, "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&q=80", 1, 2499.00, "unisized", "Satisfying clicky tactile mechanical switches. Includes vibrant custom RGB backlighting profiles and ergonomic key layout."),
         
         # Clothing
-        ("Classic Denim Jacket", "Clothing", 1499.00, 25, "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=500&q=80", 1),
-        ("Casual Cotton T-Shirt", "Clothing", 499.00, 50, "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80", 1),
-        ("Warm Winter Hoodie", "Clothing", 1199.00, 15, "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=500&q=80", 1),
+        ("Classic Denim Jacket", "Clothing", 1499.00, 25, "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=500&q=80", 1, 1999.00, "S, M, L, XL", "Durable pre-washed organic blue denim material. Features metal button closures, standard fit, and double breast pockets."),
+        ("Casual Cotton T-Shirt", "Clothing", 499.00, 50, "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80", 1, 699.00, "S, M, L, XL", "Breathable 100% combed cotton classic crewneck t-shirt. Ideal for casual, everyday streetwear styling."),
+        ("Warm Winter Hoodie", "Clothing", 1199.00, 15, "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=500&q=80", 1, 1599.00, "S, M, L, XL", "Cozy heavy fleece inner lining hoodie with drawstring adjustments and front hand-warmer pocket partitions."),
         
         # Grocery
-        ("Capsicum-Green", "Grocery", 80.00, 100, "https://www.bbassets.com/media/uploads/p/m/10000067_26-fresho-capsicum-green.jpg?tr=w-154,q-80", 1),
-        ("Carrot-Orange", "Grocery", 38.00, 100, "https://www.bbassets.com/media/uploads/p/m/10000070_16-fresho-carrot-orange.jpg?tr=w-154,q-80", 1),
-        ("Apple Washington", "Grocery", 280.00, 80, "https://www.bbassets.com/media/uploads/p/m/40119549_1-fresho-apple-washington-113-count.jpg?tr=w-154,q-80", 1),
-        ("Moong Dal Regular", "Grocery", 159.80, 50, "https://www.bbassets.com/media/uploads/p/m/40133880_1-institutional-moong-dal-regular.jpg?tr=w-154,q-80", 1),
-        ("Heritage Cow Ghee", "Grocery", 621.00, 40, "https://www.bbassets.com/media/uploads/p/m/40268426_2-heritage-cow-ghee-rich-in-vitamins-minerals-healthy-taste.jpg?tr=w-154,q-80", 1),
+        ("Capsicum-Green", "Grocery", 80.00, 100, "https://www.bbassets.com/media/uploads/p/m/10000067_26-fresho-capsicum-green.jpg?tr=w-154,q-80", 1, 95.00, "unisized", "Fresh, crisp organic green capsicums. Handpicked daily from local farms for culinary freshness."),
+        ("Carrot-Orange", "Grocery", 38.00, 100, "https://www.bbassets.com/media/uploads/p/m/10000070_16-fresho-carrot-orange.jpg?tr=w-154,q-80", 1, 45.00, "unisized", "Sweet, crunchy fresh orange carrots. Loaded with vitamin-A nutrients, ideal for salads or juices."),
+        ("Apple Washington", "Grocery", 280.00, 80, "https://www.bbassets.com/media/uploads/p/m/40119549_1-fresho-apple-washington-113-count.jpg?tr=w-154,q-80", 1, 320.00, "unisized", "Imported crispy sweet Washington red apples. Nutrient dense, delicious, and fresh snack picks."),
+        ("Moong Dal Regular", "Grocery", 159.80, 50, "https://www.bbassets.com/media/uploads/p/m/40133880_1-institutional-moong-dal-regular.jpg?tr=w-154,q-80", 1, 180.00, "unisized", "High protein organic hulled yellow split mung lentils. Essential for daily dietary cooking."),
+        ("Heritage Cow Ghee", "Grocery", 621.00, 40, "https://www.bbassets.com/media/uploads/p/m/40268426_2-heritage-cow-ghee-rich-in-vitamins-minerals-healthy-taste.jpg?tr=w-154,q-80", 1, 699.00, "unisized", "Aromatic premium cow ghee prepared using age-old traditional recipes. Loaded with essential fats and vitamins."),
         
         # Home & Furniture
-        ("Ergonomic Office Chair", "Home & Furniture", 6999.00, 10, "https://images.unsplash.com/photo-1505797149-43b0069ec26b?w=500&q=80", 1),
-        ("Minimalist Desk Lamp", "Home & Furniture", 999.00, 15, "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500&q=80", 1),
-        ("Ceramic Flower Vase", "Home & Furniture", 599.00, 35, "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=500&q=80", 1),
+        ("Ergonomic Office Chair", "Home & Furniture", 6999.00, 10, "https://images.unsplash.com/photo-1505797149-43b0069ec26b?w=500&q=80", 1, 8999.00, "unisized", "Premium lumbar support mesh office chair. Features height adjustment controls, 360-degree swivel, and comfortable armrests."),
+        ("Minimalist Desk Lamp", "Home & Furniture", 999.00, 15, "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500&q=80", 1, 1299.00, "unisized", "Sleek eye-friendly LED desk lamp. Features touch brightness controls and adjustable neck angling positions."),
+        ("Ceramic Flower Vase", "Home & Furniture", 599.00, 35, "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=500&q=80", 1, 799.00, "unisized", "Hand-molded stylish ceramic flower vase. Perfectly enhances modern kitchen counters or living room corner tables."),
         
         # Books & Education
-        ("Science Fiction Novel", "Books & Education", 399.00, 45, "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=500&q=80", 1),
-        ("Python Programming Guide", "Books & Education", 799.00, 20, "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=500&q=80", 1),
-        ("Drawing Sketchbook", "Books & Education", 299.00, 60, "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=500&q=80", 1)
+        ("Science Fiction Novel", "Books & Education", 399.00, 45, "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=500&q=80", 1, 499.00, "unisized", "Award-winning futuristic space thriller novel. A mind-bending exploration of galactic civilizations and space time warp travels."),
+        ("Python Programming Guide", "Books & Education", 799.00, 20, "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=500&q=80", 1, 999.00, "unisized", "Master Python programming from scratch. Covers data structures, object-oriented concepts, algorithms, and real-world projects."),
+        ("Drawing Sketchbook", "Books & Education", 299.00, 60, "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=500&q=80", 1, 399.00, "unisized", "Premium 120-GSM heavy acid-free drawing sheets. Supports dry sketching media, color pencils, and water paint sweeps.")
     ]
     
-    for name, cat, price, stock, img, ret_id in products:
+    for name, cat, price, stock, img, ret_id, cost, szs, desc in products:
         db_query(
-            "INSERT INTO products (name, category, price, stock, image, retailer_id) VALUES (?, ?, ?, ?, ?, ?)",
-            (name, cat, price, stock, img, ret_id),
+            "INSERT INTO products (name, category, price, stock, image, retailer_id, cost_price, sizes, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (name, cat, price, stock, img, ret_id, cost, szs, desc),
             commit=True
         )
     print("✅ Seeded products table successfully.")
+
+def seed_reviews_if_empty():
+    count = db_query("SELECT COUNT(*) as cnt FROM reviews", one=True)
+    if count and count["cnt"] > 0:
+        return
+        
+    reviews = [
+        (1, 1, "Alice", 5, "Unbelievable sound quality! Battery lasts forever. Highly recommend!"),
+        (1, 2, "Bob", 4, "Really comfortable for long gaming sessions, fits perfectly."),
+        (2, 3, "Charlie", 5, "Sleek look, tracks metrics accurately, notifications are fast."),
+        (2, 1, "Alice", 4, "Excellent watch, battery is okay but charges extremely fast."),
+        (3, 2, "Bob", 5, "Ultra fast laptop, screen is beautiful. Perfect for coding!"),
+        (4, 3, "Charlie", 4, "Key clicks feel awesome, beautiful RGB backlights."),
+        (5, 1, "Alice", 5, "Very warm and stylish denim jacket. Fits true to size."),
+        (5, 2, "Bob", 4, "Good quality fabric, holds up well in wash.")
+    ]
+    for product_id, user_id, username, rating, comment in reviews:
+        db_query(
+            "INSERT INTO reviews (product_id, user_id, username, rating, comment) VALUES (?, ?, ?, ?, ?)",
+            (product_id, user_id, username, rating, comment),
+            commit=True
+        )
+    print("✅ Seeded reviews table successfully.")
 
 
 # ----------------- EMAIL SETUP -----------------
@@ -423,6 +487,13 @@ def get_products():
     products = db_query(query, tuple(params))
     return jsonify(products)
 
+@app.route("/products/<int:product_id>", methods=["GET"])
+def get_single_product(product_id):
+    prod = db_query("SELECT * FROM products WHERE id = ?", (product_id,), one=True)
+    if not prod:
+        return jsonify({"error": "Product not found"}), 404
+    return jsonify(prod)
+
 @app.route("/products", methods=["POST"])
 @token_required
 @role_required('retailer', 'admin')
@@ -435,12 +506,16 @@ def add_product(current_user):
     image = data.get("image", "")
     retailer_id = current_user["id"]
     
+    cost_price = float(data.get("cost_price", price * 1.25))
+    sizes = data.get("sizes", "unisized")
+    description = data.get("description", "Premium product curated by ShopSphere.")
+    
     # Gain 50 XP for listing a product!
     db_query("UPDATE users SET xp = xp + 50 WHERE id = ?", (current_user["id"],), commit=True)
     
     prod_id = db_query(
-        "INSERT INTO products (name, category, price, stock, image, retailer_id) VALUES (?, ?, ?, ?, ?, ?)",
-        (name, category, price, stock, image, retailer_id),
+        "INSERT INTO products (name, category, price, stock, image, retailer_id, cost_price, sizes, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (name, category, price, stock, image, retailer_id, cost_price, sizes, description),
         commit=True
     )
     return jsonify({"message": "Product added", "product": {"id": prod_id}}), 201
@@ -463,10 +538,13 @@ def update_product(current_user, product_id):
     price = float(data.get("price", prod["price"]))
     stock = int(data.get("stock", prod["stock"]))
     image = data.get("image", prod["image"])
+    cost_price = float(data.get("cost_price", prod["cost_price"] if prod["cost_price"] is not None else price * 1.25))
+    sizes = data.get("sizes", prod["sizes"] if prod["sizes"] is not None else 'unisized')
+    description = data.get("description", prod["description"] if prod["description"] is not None else 'Premium product curated by ShopSphere.')
     
     db_query(
-        "UPDATE products SET name = ?, category = ?, price = ?, stock = ?, image = ? WHERE id = ?",
-        (name, category, price, stock, image, product_id),
+        "UPDATE products SET name = ?, category = ?, price = ?, stock = ?, image = ?, cost_price = ?, sizes = ?, description = ? WHERE id = ?",
+        (name, category, price, stock, image, cost_price, sizes, description, product_id),
         commit=True
     )
     return jsonify({"message": "Updated"})
@@ -501,16 +579,21 @@ def get_orders(current_user):
             o['cart'] = json.loads(o['cart_json'])
         except Exception:
             o['cart'] = []
+        try:
+            o['shipping_address'] = json.loads(o['shipping_address']) if o['shipping_address'] else None
+        except Exception:
+            o['shipping_address'] = None
             
     return jsonify(orders)
 
 @app.route("/checkout", methods=["POST"])
 @token_required
 def perform_checkout(current_user):
-    data = request.get_json()
+    data = request.get_json() or {}
     cart = data.get("cart", [])
     total = data.get("total", 0)
     email = data.get("email", current_user["username"])
+    shipping_addr_raw = data.get("shipping_address", {})
 
     if not cart:
         return jsonify({"error": "Empty cart"}), 400
@@ -542,9 +625,11 @@ def perform_checkout(current_user):
         xp_gained += 300
 
     cart_json = json.dumps(cart)
+    shipping_address_json = json.dumps(shipping_addr_raw)
+    
     order_id = db_query(
-        "INSERT INTO orders (user_id, email, cart_json, total, status) VALUES (?, ?, ?, ?, ?)",
-        (current_user["id"], email, cart_json, total, "paid"),
+        "INSERT INTO orders (user_id, email, cart_json, total, status, shipping_address) VALUES (?, ?, ?, ?, ?, ?)",
+        (current_user["id"], email, cart_json, total, "paid", shipping_address_json),
         commit=True
     )
     
@@ -570,6 +655,30 @@ def perform_checkout(current_user):
 @token_required
 def create_checkout_session(current_user):
     return jsonify({"clientSecret": "pi_mock", "redirect_url": "/checkout-success"})
+
+
+# ----------------- REVIEWS ENDPOINTS -----------------
+@app.route("/products/<int:product_id>/reviews", methods=["GET"])
+def get_product_reviews(product_id):
+    reviews = db_query("SELECT * FROM reviews WHERE product_id = ? ORDER BY id DESC", (product_id,))
+    return jsonify(reviews)
+
+@app.route("/products/<int:product_id>/reviews", methods=["POST"])
+@token_required
+def add_product_review(current_user, product_id):
+    data = request.json or {}
+    rating = int(data.get("rating", 5))
+    comment = data.get("comment", "").strip()
+    
+    if not comment:
+        return jsonify({"error": "Comment is required"}), 400
+        
+    db_query(
+        "INSERT INTO reviews (product_id, user_id, username, rating, comment) VALUES (?, ?, ?, ?, ?)",
+        (product_id, current_user["id"], current_user["username"], rating, comment),
+        commit=True
+    )
+    return jsonify({"message": "Review posted successfully!"}), 201
 
 
 # ----------------- GAMIFICATION ENDPOINTS -----------------

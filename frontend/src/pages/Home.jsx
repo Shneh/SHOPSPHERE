@@ -164,7 +164,11 @@ export default function Home({ onAddToCart }) {
           <div className="product-grid">
             {sortedProducts.map(p => (
               <div key={p.id} className="glass-card glow-hover" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
-                <div className="product-image-container">
+                <div 
+                  className="product-image-container" 
+                  onClick={() => navigate(`/product/${p.id}`)}
+                  style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden', borderRadius: '10px', marginBottom: '1rem', height: '200px', background: '#f1f5f9' }}
+                >
                   {p.image ? (
                     <img src={p.image} alt={p.name} className="product-image" />
                   ) : (
@@ -177,7 +181,10 @@ export default function Home({ onAddToCart }) {
                   </span>
                 </div>
                 
-                <h3 style={{ fontSize: '1.2rem', margin: '0.5rem 0 0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <h3 
+                  onClick={() => navigate(`/product/${p.id}`)}
+                  style={{ fontSize: '1.2rem', margin: '0.5rem 0 0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
+                >
                   {p.name}
                 </h3>
                 
@@ -217,10 +224,19 @@ export default function Home({ onAddToCart }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '2rem' }}>
             {recommendations.map(p => (
               <div key={p.id} className="glass-card glow-hover" style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.5)' }}>
-                <div className="product-image-container" style={{ height: '150px' }}>
+                <div 
+                  className="product-image-container" 
+                  onClick={() => navigate(`/product/${p.id}`)}
+                  style={{ height: '150px', cursor: 'pointer', position: 'relative', overflow: 'hidden', borderRadius: '10px', marginBottom: '1rem', background: '#f1f5f9' }}
+                >
                   <img src={p.image} alt={p.name} className="product-image" />
                 </div>
-                <h4 style={{ fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '0.5rem' }}>{p.name}</h4>
+                <h4 
+                  onClick={() => navigate(`/product/${p.id}`)}
+                  style={{ fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '0.5rem', cursor: 'pointer' }}
+                >
+                  {p.name}
+                </h4>
                 <div className="flex justify-between items-center">
                   <span className="price-tag" style={{ fontSize: '1.1rem' }}>₹{p.price}</span>
                   <button className="btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => onAddToCart(p)}>

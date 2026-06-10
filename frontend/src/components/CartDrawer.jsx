@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 export default function CartDrawer({ 
@@ -6,6 +7,7 @@ export default function CartDrawer({
   onClose, 
   cartItems, 
   onRemoveItem, 
+  onUpdateQuantity,
   onCheckoutSuccess,
   appliedCoupon,
   onApplyCoupon
@@ -14,6 +16,7 @@ export default function CartDrawer({
   const [discountPercent, setDiscountPercent] = useState(0);
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
+  const navigate = useNavigate();
 
   if (!isOpen) return null;
 
@@ -49,24 +52,15 @@ export default function CartDrawer({
     }
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (cartItems.length === 0) return;
-    
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post('/checkout', {
-        cart: cartItems,
-        total: grandTotal,
-        coupon: appliedCoupon
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      onCheckoutSuccess(res.data);
-      onClose();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Checkout failed');
+    if (appliedCoupon) {
+      localStorage.setItem('appliedCoupon', appliedCoupon);
+    } else {
+      localStorage.removeItem('appliedCoupon');
     }
+    onClose();
+    navigate('/checkout');
   };
 
   return (
@@ -95,7 +89,29 @@ export default function CartDrawer({
                   )}
                   <div style={{ flex: 1 }}>
                     <h4 style={{ fontSize: '1rem', marginBottom: '0.2rem' }}>{item.name}</h4>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>₹{item.price} (x{item.quantity})</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>₹{item.price}</span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Size: {item.selectedSize || 'unisized'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem' }}>
+                      <button 
+                        type="button" 
+                        className="btn-secondary" 
+                        style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', borderRadius: '4px', height: 'auto', minHeight: 'auto' }} 
+                        onClick={() => onUpdateQuantity(idx, item.quantity - 1)}
+                      >
+                        -
+                      </button>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '700', minWidth: '16px', textAlign: 'center' }}>{item.quantity}</span>
+                      <button 
+                        type="button" 
+                        className="btn-secondary" 
+                        style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', borderRadius: '4px', height: 'auto', minHeight: 'auto' }} 
+                        onClick={() => onUpdateQuantity(idx, item.quantity + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                   <button className="btn-danger" style={{ padding: '0.35rem 0.6rem', borderRadius: '6px' }} onClick={() => onRemoveItem(idx)}>
                     ✕

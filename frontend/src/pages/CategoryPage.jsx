@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 export default function CategoryPage({ onAddToCart }) {
   const { categoryName } = useParams();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProducts();
@@ -64,7 +65,11 @@ export default function CategoryPage({ onAddToCart }) {
         <div className="product-grid">
           {products.map(p => (
             <div key={p.id} className="glass-card glow-hover" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
-              <div className="product-image-container">
+              <div 
+                className="product-image-container"
+                onClick={() => navigate(`/product/${p.id}`)}
+                style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden', borderRadius: '10px', marginBottom: '1rem', height: '200px', background: '#f1f5f9' }}
+              >
                 {p.image ? (
                   <img src={p.image} alt={p.name} className="product-image" />
                 ) : (
@@ -74,7 +79,10 @@ export default function CategoryPage({ onAddToCart }) {
                 )}
               </div>
               
-              <h3 style={{ fontSize: '1.2rem', margin: '0.5rem 0 0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <h3 
+                onClick={() => navigate(`/product/${p.id}`)}
+                style={{ fontSize: '1.2rem', margin: '0.5rem 0 0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
+              >
                 {p.name}
               </h3>
               

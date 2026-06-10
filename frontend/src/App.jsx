@@ -10,6 +10,8 @@ import RetailerDashboard from './pages/RetailerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import CartDrawer from './components/CartDrawer';
 import CategoryPage from './pages/CategoryPage';
+import ProductDetail from './pages/ProductDetail';
+import Checkout from './pages/Checkout';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -101,13 +103,16 @@ function App() {
   };
 
   const handleAddToCart = (product) => {
+    const size = product.selectedSize || 'unisized';
+    const qtyToAdd = product.quantity || 1;
+
     setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id);
+      const existingIdx = prev.findIndex(item => item.id === product.id && (item.selectedSize || 'unisized') === size);
       let newCart;
-      if (existing) {
-        newCart = prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      if (existingIdx > -1) {
+        newCart = prev.map((item, idx) => idx === existingIdx ? { ...item, quantity: item.quantity + qtyToAdd } : item);
       } else {
-        newCart = [...prev, { ...product, quantity: 1 }];
+        newCart = [...prev, { ...product, quantity: qtyToAdd, selectedSize: size }];
       }
       localStorage.setItem('cart', JSON.stringify(newCart));
       return newCart;
@@ -119,6 +124,19 @@ function App() {
       cartBtn.classList.add('bounce-active');
       setTimeout(() => cartBtn.classList.remove('bounce-active'), 400);
     }
+  };
+
+  const handleUpdateCartQuantity = (index, newQty) => {
+    setCartItems(prev => {
+      let newCart = [...prev];
+      if (newQty <= 0) {
+        newCart.splice(index, 1);
+      } else {
+        newCart[index] = { ...newCart[index], quantity: newQty };
+      }
+      localStorage.setItem('cart', JSON.stringify(newCart));
+      return newCart;
+    });
   };
 
   const handleRemoveFromCart = (index) => {
@@ -161,6 +179,12 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/category/:categoryName" element={<CategoryPage onAddToCart={handleAddToCart} />} />
+          <Route path="/product/:productId" element={<ProductDetail onAddToCart={handleAddToCart} />} />
+          <Route path="/checkout" element={
+            <ProtectedRoute>
+              <Checkout cartItems={cartItems} onCheckoutSuccess={handleCheckoutSuccess} />
+            </ProtectedRoute>
+          } />
           
           <Route path="/dashboard/user" element={
             <ProtectedRoute allowedRoles={['user', 'admin']}>
@@ -192,6 +216,7 @@ function App() {
         onClose={() => setIsCartOpen(false)}
         cartItems={cartItems}
         onRemoveItem={handleRemoveFromCart}
+        onUpdateQuantity={handleUpdateCartQuantity}
         onCheckoutSuccess={handleCheckoutSuccess}
         appliedCoupon={appliedCoupon}
         onApplyCoupon={(code) => setAppliedCoupon(code)}
