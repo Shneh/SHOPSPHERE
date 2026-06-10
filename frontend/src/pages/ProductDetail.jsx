@@ -8,6 +8,7 @@ export default function ProductDetail({ onAddToCart }) {
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [aiVerdict, setAiVerdict] = useState('Generating AI Verdict...');
   
   const [selectedSize, setSelectedSize] = useState('unisized');
   const [quantity, setQuantity] = useState(1);
@@ -27,14 +28,16 @@ export default function ProductDetail({ onAddToCart }) {
   const fetchProductDetails = async () => {
     setLoading(true);
     try {
-      const [prodRes, reviewsRes, recsRes] = await Promise.all([
+      const [prodRes, reviewsRes, recsRes, verdictRes] = await Promise.all([
         axios.get(`/products/${productId}`),
         axios.get(`/products/${productId}/reviews`),
-        axios.get('/recommend')
+        axios.get(`/recommend?product_id=${productId}`),
+        axios.get(`/products/${productId}/ai-verdict`)
       ]);
       setProduct(prodRes.data);
       setReviews(reviewsRes.data);
       setRecommendations(recsRes.data);
+      setAiVerdict(verdictRes.data.verdict);
       
       // Select first size option if available
       if (prodRes.data.sizes && prodRes.data.sizes !== 'unisized') {
@@ -283,9 +286,18 @@ export default function ProductDetail({ onAddToCart }) {
             <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-color)' }}>
               🤖 ShopSphere AI Match
             </h4>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem', lineHeight: '1.5' }}>
-              {getAiRecommendationPitch(product)}
-            </p>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem', lineHeight: '1.5' }}>
+              {(() => {
+                if (!aiVerdict) return null;
+                // Parse simple markdown: **bold** and *italics*
+                const boldRegex = /\*\*(.*?)\*\*/g;
+                let html = aiVerdict.replace(boldRegex, '<strong>$1</strong>');
+                html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                return html.split('\n').map((line, idx) => (
+                  <div key={idx} dangerouslySetInnerHTML={{ __html: line }} style={{ minHeight: line ? 'auto' : '0.5rem' }} />
+                ));
+              })()}
+            </div>
           </div>
 
         </div>

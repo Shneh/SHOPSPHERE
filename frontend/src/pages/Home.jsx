@@ -1,13 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { AuthContext } from '../context/AuthContext';
 
 export default function Home({ onAddToCart }) {
+  const { user } = useContext(AuthContext);
   const [products, setProducts] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [loading, setLoading] = useState(true);
+
+  // Live search autocomplete states
+  const [liveResults, setLiveResults] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const searchContainerRef = useRef(null);
+  const debounceTimer = useRef(null);
   
   // Sort states
   const [sortBy, setSortBy] = useState('name');
@@ -20,7 +29,7 @@ export default function Home({ onAddToCart }) {
   useEffect(() => {
     fetchProducts();
     fetchRecommendations();
-  }, []);
+  }, [user]);
 
   const fetchProducts = async (query = '', cat = 'All') => {
     setLoading(true);
@@ -40,17 +49,67 @@ export default function Home({ onAddToCart }) {
 
   const fetchRecommendations = async () => {
     try {
-      const res = await axios.get('/recommend');
+      let url = '/recommend';
+      if (user && user.id) {
+        url += `?user_id=${user.id}`;
+      }
+      const res = await axios.get(url);
       setRecommendations(res.data);
     } catch (err) {
       console.error('Failed to load recommendations:', err);
     }
   };
 
+  // Debounced live search as user types
+  const fetchLiveResults = useCallback((query) => {
+    if (!query || query.trim().length < 2) {
+      setLiveResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    setLiveLoading(true);
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const res = await axios.get(`/products?search=${encodeURIComponent(query)}`);
+        setLiveResults(res.data.slice(0, 6));
+        setShowDropdown(true);
+      } catch (err) {
+        setLiveResults([]);
+      } finally {
+        setLiveLoading(false);
+      }
+    }, 280);
+  }, []);
+
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setSearch(val);
+    fetchLiveResults(val);
+  };
+
+  const handleSelectSuggestion = (product) => {
+    setShowDropdown(false);
+    setSearch('');
+    navigate(`/product/${product.id}`);
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
+    setShowDropdown(false);
     fetchProducts(search, activeCategory);
   };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const handleCategoryClick = (cat) => {
     if (cat === 'All') {
@@ -97,15 +156,111 @@ export default function Home({ onAddToCart }) {
         </p>
         
         <form onSubmit={handleSearch} style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <input 
-              type="text" 
-              placeholder="Search products, brands, categories..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ marginBottom: 0, padding: '0.9rem 1.25rem', borderRadius: '30px' }}
-            />
-            <button type="submit" className="btn-primary" style={{ padding: '0.9rem 2.2rem', borderRadius: '30px' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', position: 'relative' }} ref={searchContainerRef}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <input 
+                type="text" 
+                id="home-search-input"
+                placeholder="Search products, brands, categories..."
+                value={search}
+                onChange={handleSearchChange}
+                onFocus={() => search.trim().length >= 2 && setShowDropdown(true)}
+                onKeyDown={(e) => e.key === 'Escape' && setShowDropdown(false)}
+                style={{ marginBottom: 0, padding: '0.9rem 1.25rem', borderRadius: '30px', width: '100%' }}
+                autoComplete="off"
+              />
+
+              {/* Live Search Dropdown */}
+              {showDropdown && (
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  left: 0,
+                  right: 0,
+                  background: 'rgba(255,255,255,0.98)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(13,148,136,0.2)',
+                  borderRadius: '16px',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.12)',
+                  zIndex: 1000,
+                  overflow: 'hidden',
+                  animation: 'fadeIn 0.15s ease'
+                }}>
+                  {liveLoading ? (
+                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      ⏳ Searching...
+                    </div>
+                  ) : liveResults.length === 0 ? (
+                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      No results found for "{search}"
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ padding: '0.6rem 1rem 0.25rem', fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        🔍 {liveResults.length} Result{liveResults.length !== 1 ? 's' : ''}
+                      </div>
+                      {liveResults.map((product, idx) => (
+                        <div
+                          key={product.id}
+                          onClick={() => handleSelectSuggestion(product)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.65rem 1rem',
+                            cursor: 'pointer',
+                            transition: 'background 0.15s',
+                            borderTop: idx === 0 ? 'none' : '1px solid rgba(0,0,0,0.04)'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(13,148,136,0.05)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          {product.image ? (
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              style={{ width: '44px', height: '44px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0 }}
+                            />
+                          ) : (
+                            <div style={{ width: '44px', height: '44px', background: 'rgba(13,148,136,0.08)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>📦</div>
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontWeight: '600', fontSize: '0.9rem', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name}</p>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.1rem 0 0' }}>{product.category}</p>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--primary-color)' }}>₹{product.price}</span>
+                            {product.cost_price && product.cost_price > product.price && (
+                              <p style={{ fontSize: '0.7rem', color: 'var(--accent-color)', margin: '0.1rem 0 0', fontWeight: '600' }}>
+                                {Math.round(((product.cost_price - product.price) / product.cost_price) * 100)}% OFF
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      <div
+                        onClick={() => { setShowDropdown(false); fetchProducts(search, activeCategory); }}
+                        style={{
+                          padding: '0.65rem 1rem',
+                          textAlign: 'center',
+                          fontSize: '0.8rem',
+                          color: 'var(--primary-color)',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          borderTop: '1px solid rgba(13,148,136,0.1)',
+                          background: 'rgba(13,148,136,0.02)'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(13,148,136,0.08)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(13,148,136,0.02)'}
+                      >
+                        See all results for "{search}" →
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            <button type="submit" className="btn-primary" style={{ padding: '0.9rem 2.2rem', borderRadius: '30px', flexShrink: 0 }}>
               🔍 Search
             </button>
           </div>

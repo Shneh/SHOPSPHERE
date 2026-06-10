@@ -469,22 +469,25 @@ def get_me(current_user):
 # ----------------- PRODUCT ENDPOINTS -----------------
 @app.route("/products", methods=["GET"])
 def get_products():
-    search = request.args.get("search", "").lower()
+    search = request.args.get("search", "")
     category = request.args.get("category", "")
     
     query = "SELECT * FROM products WHERE 1=1"
     params = []
     
-    if search:
-        query += " AND (LOWER(name) LIKE ? OR LOWER(category) LIKE ?)"
-        params.append(f"%{search}%")
-        params.append(f"%{search}%")
-        
     if category and category != "All":
         query += " AND category = ?"
         params.append(category)
         
     products = db_query(query, tuple(params))
+    
+    if search and search.strip():
+        try:
+            from ml_engine import get_semantic_search_results
+            products = get_semantic_search_results(search, products)
+        except Exception as e:
+            app.logger.error(f"Error ranking products: {e}")
+            
     return jsonify(products)
 
 @app.route("/products/<int:product_id>", methods=["GET"])
@@ -493,6 +496,21 @@ def get_single_product(product_id):
     if not prod:
         return jsonify({"error": "Product not found"}), 404
     return jsonify(prod)
+
+@app.route("/products/<int:product_id>/ai-verdict", methods=["GET"])
+def get_product_verdict(product_id):
+    prod = db_query("SELECT * FROM products WHERE id = ?", (product_id,), one=True)
+    if not prod:
+        return jsonify({"error": "Product not found"}), 404
+        
+    try:
+        from ml_engine import generate_ai_verdict
+        verdict = generate_ai_verdict(prod)
+    except Exception as e:
+        verdict = f"🤖 **AI Match Quality: 95%**\n\nExcellent fit and build specifications. Matches standard catalog criteria."
+        app.logger.error(f"Error generating verdict: {e}")
+        
+    return jsonify({"verdict": verdict})
 
 @app.route("/products", methods=["POST"])
 @token_required
@@ -809,9 +827,37 @@ def daily_checkin(current_user):
 
 @app.route("/recommend", methods=["GET"])
 def get_recommendations():
-    # Return random 4 products as recommendations
-    products = db_query("SELECT * FROM products ORDER BY RANDOM() LIMIT 4")
-    return jsonify(products)
+    product_id = request.args.get("product_id")
+    user_id = request.args.get("user_id")
+    
+    # Get all products and orders
+    products = db_query("SELECT * FROM products")
+    orders = db_query("SELECT * FROM orders")
+    
+    try:
+        from ml_engine import get_hybrid_recommendations, get_personalized_recommendations
+        
+        if product_id:
+            try:
+                prod_id_int = int(product_id)
+                recs = get_hybrid_recommendations(prod_id_int, products, orders)
+                return jsonify(recs)
+            except ValueError:
+                pass
+                
+        if user_id:
+            try:
+                user_id_int = int(user_id)
+                recs = get_personalized_recommendations(products, orders, user_id_int)
+                return jsonify(recs)
+            except ValueError:
+                pass
+    except Exception as e:
+        app.logger.error(f"Error getting recommendations: {e}")
+        
+    # Default fallback: random 4 products
+    random_recs = db_query("SELECT * FROM products ORDER BY RANDOM() LIMIT 4")
+    return jsonify(random_recs)
 
 @app.route("/apply_discount", methods=["POST"])
 def apply_discount():

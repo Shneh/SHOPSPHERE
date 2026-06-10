@@ -4,3 +4,5 @@ PyJWT
 gunicorn
 requests
 cryptography
+scikit-learn
+google-generativeai
